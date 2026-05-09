@@ -1,0 +1,541 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+  <title>Kothak Photo - Self-Service Photobooth Kiosk</title>
+  <meta name="description" content="Kothak Photo - Premium self-service photobooth kiosk. Capture your moments, share your joy." />
+  <meta name="theme-color" content="#071325" />
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:ital,wght@0,300;0,400;0,500;0,600;0,700;0,800&family=Manrope:wght@300;0,400;0,500;0,600;0,700;0,800&family=Playfair+Display:ital,wght@0,400;0,700;0,900;1,400;1,700&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/icon?family=Material+Symbols+Rounded" rel="stylesheet" />
+  <link rel="stylesheet" href="kothak-photo.css" />
+</head>
+<body>
+  <div id="kiosk-app" class="kiosk-app">
+    <!-- Bokeh Background Particles -->
+    <div class="bokeh-bg" aria-hidden="true">
+      <div class="bokeh-particle p1"></div>
+      <div class="bokeh-particle p2"></div>
+      <div class="bokeh-particle p3"></div>
+      <div class="bokeh-particle p4"></div>
+      <div class="bokeh-particle p5"></div>
+      <div class="bokeh-particle p6"></div>
+      <div class="bokeh-particle p7"></div>
+    </div>
+
+    <!-- ===== SCREEN 1: LANDING / IDLE ===== -->
+    <section id="screen-landing" class="screen active" data-step="0">
+      <div class="landing-content">
+        <div class="landing-deco-strips" aria-hidden="true">
+          <div class="deco-strip left">
+            <div class="mini-photo"></div><div class="mini-photo"></div><div class="mini-photo"></div>
+          </div>
+          <div class="deco-strip right">
+            <div class="mini-photo"></div><div class="mini-photo"></div><div class="mini-photo"></div>
+          </div>
+        </div>
+        <div class="landing-brand">
+          <div class="brand-icon">
+            <span class="material-symbols-rounded">photo_camera</span>
+          </div>
+          <h1 class="brand-name">Kothak<span class="gold">Photo</span></h1>
+          <p class="brand-tagline">Capture Your Moments, Share Your Joy</p>
+        </div>
+        <button id="btn-start" class="btn-start pulse-glow">
+          <span class="material-symbols-rounded">touch_app</span>
+          MULAI / START
+        </button>
+        <p class="tap-hint">Tap untuk memulai sesi foto</p>
+      </div>
+    </section>
+
+    <!-- ===== SCREEN 2: PACKAGE SELECTION ===== -->
+    <section id="screen-package" class="screen" data-step="1">
+      <div class="screen-header">
+        <button class="btn-back" data-action="back"><span class="material-symbols-rounded">arrow_back</span></button>
+        <div class="header-info">
+          <h2>Pilih Paket</h2>
+          <div class="step-indicator"><span class="step-current">1</span> / 6</div>
+        </div>
+      </div>
+      <div class="screen-body">
+        <div class="package-grid">
+          <div class="package-card selected" data-package="premium" id="pkg-premium">
+            <div class="pkg-badge popular">TERPOPULER</div>
+            <span class="material-symbols-rounded pkg-icon">auto_awesome</span>
+            <h3>Paket Premium</h3>
+            <p class="pkg-price">Rp 40.000</p>
+            <ul class="pkg-features">
+              <li><span class="material-symbols-rounded check-icon">check_circle</span> <span>6 foto strip</span></li>
+              <li><span class="material-symbols-rounded check-icon">check_circle</span> <span>3 frame pilihan</span></li>
+              <li><span class="material-symbols-rounded check-icon">check_circle</span> <span>Digital + Cetak</span></li>
+              <li><span class="material-symbols-rounded check-icon">check_circle</span> <span>Filter premium</span></li>
+            </ul>
+          </div>
+          <div class="package-card" data-package="group" id="pkg-group">
+            <div class="pkg-badge"></div>
+            <span class="material-symbols-rounded pkg-icon">groups</span>
+            <h3>Paket Group</h3>
+            <p class="pkg-price">Rp 50.000</p>
+            <ul class="pkg-features">
+              <li><span class="material-symbols-rounded check-icon">check_circle</span> <span>8 foto strip</span></li>
+              <li><span class="material-symbols-rounded check-icon">check_circle</span> <span>Semua frame</span></li>
+              <li><span class="material-symbols-rounded check-icon">check_circle</span> <span>Digital + Cetak</span></li>
+              <li><span class="material-symbols-rounded check-icon">check_circle</span> <span>Filter premium</span></li>
+              <li><span class="material-symbols-rounded check-icon">check_circle</span> <span>Extra print</span></li>
+            </ul>
+          </div>
+          <div class="package-card" data-package="reguler" id="pkg-reguler">
+            <div class="pkg-badge"></div>
+            <span class="material-symbols-rounded pkg-icon">photo_library</span>
+            <h3>Paket Reguler</h3>
+            <p class="pkg-price">Rp 25.000</p>
+            <ul class="pkg-features">
+              <li><span class="material-symbols-rounded check-icon">check_circle</span> <span>4 foto strip</span></li>
+              <li><span class="material-symbols-rounded check-icon">check_circle</span> <span>1 frame pilihan</span></li>
+              <li><span class="material-symbols-rounded check-icon">check_circle</span> <span>Digital + Cetak</span></li>
+            </ul>
+          </div>
+        </div>
+      </div>
+      <div class="screen-footer">
+        <button class="btn-primary btn-next" data-goto="screen-data">
+          Lanjut <span class="material-symbols-rounded">arrow_forward</span>
+        </button>
+      </div>
+    </section>
+
+    <!-- ===== SCREEN 3: DATA COLLECTION ===== -->
+    <section id="screen-data" class="screen" data-step="2">
+      <div class="screen-header">
+        <button class="btn-back" data-action="back"><span class="material-symbols-rounded">arrow_back</span></button>
+        <div class="header-info">
+          <h2>Isi Data Kamu</h2>
+          <div class="step-indicator"><span class="step-current">2</span> / 6</div>
+        </div>
+      </div>
+      <div class="screen-body">
+        <div class="glass-card form-card">
+          <div class="input-group">
+            <label>Nama Lengkap</label>
+            <div class="input-box">
+              <span class="material-symbols-rounded input-icon">person</span>
+              <input type="text" id="input-name" placeholder="Masukkan nama kamu" autocomplete="off" />
+            </div>
+            <div class="error-message" id="error-name"></div>
+          </div>
+          <div class="input-group">
+            <label>Nomor WhatsApp</label>
+            <div class="input-box">
+              <span class="material-symbols-rounded input-icon">phone</span>
+              <input type="tel" id="input-phone" placeholder="08xxxxxxxxxx" autocomplete="off" />
+            </div>
+            <div class="error-message" id="error-phone"></div>
+          </div>
+          <div class="input-group">
+            <div class="label-with-tag">
+              <label>Kode Voucher</label>
+              <span class="optional-tag">OPSIONAL</span>
+            </div>
+            <div class="input-box">
+              <span class="material-symbols-rounded input-icon">confirmation_number</span>
+              <input type="text" id="input-voucher" placeholder="Masukkan kode voucher" autocomplete="off" />
+              <button class="btn-check-voucher" id="btn-check-voucher">Cek</button>
+            </div>
+          </div>
+          <div class="voucher-success hidden" id="voucher-success">
+            <span class="material-symbols-rounded">verified</span>
+            <span>PROMO10 — Diskon Rp 10.000 berhasil diterapkan!</span>
+          </div>
+        </div>
+        <div class="glass-card price-summary" id="price-summary">
+          <div class="price-row">
+            <span>Paket Premium</span>
+            <span class="price-original" id="price-original">Rp 40.000</span>
+          </div>
+          <div class="price-row discount hidden" id="discount-row">
+            <span>Diskon</span>
+            <span class="price-discount">-Rp 10.000</span>
+          </div>
+          <div class="price-row total">
+            <span>Total</span>
+            <span class="price-total" id="price-total">Rp 40.000</span>
+          </div>
+        </div>
+      </div>
+      <div class="screen-footer">
+        <button class="btn-primary btn-next" data-goto="screen-payment">
+          Lanjut ke Pembayaran <span class="material-symbols-rounded">arrow_forward</span>
+        </button>
+      </div>
+    </section>
+
+    <!-- ===== SCREEN 4: QRIS PAYMENT ===== -->
+    <section id="screen-payment" class="screen" data-step="3">
+      <div class="screen-header">
+        <button class="btn-back" data-action="back"><span class="material-symbols-rounded">arrow_back</span></button>
+        <div class="header-info">
+          <h2>Pembayaran</h2>
+          <div class="step-indicator"><span class="step-current">3</span> / 6</div>
+        </div>
+      </div>
+      <div class="sandbox-badge" id="sandbox-badge">
+        <span class="material-symbols-rounded">lab</span>
+        SANDBOX MODE - Auto approve dalam <span id="sandbox-countdown">10</span>s
+      </div>
+      <div class="screen-body payment-body">
+        <div class="glass-card payment-card">
+          <h3>Scan QRIS untuk Pembayaran</h3>
+          <div class="qr-container" id="qr-container">
+            <div class="qr-placeholder">
+              <svg viewBox="0 0 200 200" class="qr-svg">
+                <rect x="10" y="10" width="50" height="50" rx="4" fill="#fff"/>
+                <rect x="140" y="10" width="50" height="50" rx="4" fill="#fff"/>
+                <rect x="10" y="140" width="50" height="50" rx="4" fill="#fff"/>
+                <rect x="20" y="20" width="30" height="30" rx="2" fill="#071325"/>
+                <rect x="150" y="20" width="30" height="30" rx="2" fill="#071325"/>
+                <rect x="20" y="150" width="30" height="30" rx="2" fill="#071325"/>
+                <rect x="70" y="10" width="10" height="10" fill="#fff"/>
+                <rect x="90" y="10" width="10" height="10" fill="#fff"/>
+                <rect x="110" y="10" width="10" height="10" fill="#fff"/>
+                <rect x="70" y="30" width="10" height="10" fill="#fff"/>
+                <rect x="90" y="30" width="20" height="10" fill="#fff"/>
+                <rect x="70" y="50" width="20" height="10" fill="#fff"/>
+                <rect x="100" y="50" width="10" height="10" fill="#fff"/>
+                <rect x="120" y="50" width="10" height="10" fill="#fff"/>
+                <rect x="10" y="70" width="10" height="10" fill="#fff"/>
+                <rect x="30" y="70" width="20" height="10" fill="#fff"/>
+                <rect x="60" y="70" width="10" height="10" fill="#fff"/>
+                <rect x="80" y="70" width="30" height="10" fill="#fff"/>
+                <rect x="120" y="70" width="10" height="10" fill="#fff"/>
+                <rect x="140" y="70" width="20" height="10" fill="#fff"/>
+                <rect x="170" y="70" width="20" height="10" fill="#fff"/>
+                <rect x="10" y="90" width="20" height="10" fill="#fff"/>
+                <rect x="40" y="90" width="10" height="10" fill="#fff"/>
+                <rect x="70" y="90" width="10" height="10" fill="#fff"/>
+                <rect x="90" y="90" width="20" height="10" fill="#fff"/>
+                <rect x="130" y="90" width="10" height="10" fill="#fff"/>
+                <rect x="150" y="90" width="10" height="10" fill="#fff"/>
+                <rect x="10" y="110" width="10" height="10" fill="#fff"/>
+                <rect x="40" y="110" width="20" height="10" fill="#fff"/>
+                <rect x="80" y="110" width="10" height="10" fill="#fff"/>
+                <rect x="100" y="110" width="20" height="10" fill="#fff"/>
+                <rect x="140" y="110" width="30" height="10" fill="#fff"/>
+                <rect x="180" y="110" width="10" height="10" fill="#fff"/>
+                <rect x="70" y="130" width="10" height="10" fill="#fff"/>
+                <rect x="90" y="130" width="20" height="10" fill="#fff"/>
+                <rect x="120" y="130" width="10" height="10" fill="#fff"/>
+                <rect x="140" y="130" width="10" height="10" fill="#fff"/>
+                <rect x="160" y="130" width="30" height="10" fill="#fff"/>
+                <rect x="70" y="150" width="20" height="10" fill="#fff"/>
+                <rect x="100" y="150" width="10" height="10" fill="#fff"/>
+                <rect x="140" y="150" width="20" height="10" fill="#fff"/>
+                <rect x="170" y="150" width="20" height="10" fill="#fff"/>
+                <rect x="70" y="170" width="10" height="10" fill="#fff"/>
+                <rect x="90" y="170" width="30" height="10" fill="#fff"/>
+                <rect x="130" y="170" width="10" height="10" fill="#fff"/>
+                <rect x="150" y="170" width="10" height="10" fill="#fff"/>
+                <rect x="170" y="170" width="20" height="10" fill="#fff"/>
+              </svg>
+            </div>
+          </div>
+          <p class="payment-total">Total Pembayaran: <span class="gold" id="pay-total">Rp 40.000</span></p>
+          <div class="payment-wallets">
+            <span class="wallet-badge">DANA</span>
+            <span class="wallet-badge">GoPay</span>
+            <span class="wallet-badge">OVO</span>
+            <span class="wallet-badge">ShopeePay</span>
+            <span class="wallet-badge">LinkAja</span>
+          </div>
+          <div class="payment-timer">
+            <div class="timer-ring">
+              <svg viewBox="0 0 36 36" class="timer-svg">
+                <path class="timer-track" d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" fill="none" stroke="#1f2a3d" stroke-width="2"/>
+                <path class="timer-fill" id="timer-fill" d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" fill="none" stroke="#ffdb3c" stroke-width="2" stroke-dasharray="100, 100"/>
+              </svg>
+            </div>
+            <span id="timer-text">04:59</span>
+          </div>
+          <div class="payment-status">
+            <div class="status-dots"><span></span><span></span><span></span></div>
+            <span>Menunggu pembayaran...</span>
+          </div>
+        </div>
+      </div>
+      <div class="screen-footer">
+        <button class="btn-outline" data-action="back">Batal</button>
+        <button class="btn-primary btn-next hidden" id="btn-payment-done" data-goto="screen-frame">
+          Pembayaran Berhasil <span class="material-symbols-rounded">check</span>
+        </button>
+      </div>
+    </section>
+
+    <!-- ===== SCREEN 5: FRAME SELECTION ===== -->
+    <section id="screen-frame" class="screen" data-step="4">
+      <div class="screen-header">
+        <button class="btn-back" data-action="back"><span class="material-symbols-rounded">arrow_back</span></button>
+        <div class="header-info">
+          <h2>Pilih Frame</h2>
+          <p class="header-sub">Kothak Photo — Pilih frame favorit kamu</p>
+          <div class="step-indicator"><span class="step-current">4</span> / 6</div>
+        </div>
+      </div>
+      <div class="screen-body frame-body">
+        <!-- Category Tabs -->
+        <div class="frame-categories" id="frame-categories">
+          <button class="cat-chip active" data-cat="all">Semua</button>
+          <button class="cat-chip" data-cat="celebration">🎉 Celebration</button>
+          <button class="cat-chip" data-cat="social">👥 Social</button>
+          <button class="cat-chip" data-cat="story">📖 Story</button>
+          <button class="cat-chip" data-cat="adventure">🌍 Adventure</button>
+        </div>
+        <!-- Frame Gallery -->
+        <div class="frame-gallery" id="frame-gallery">
+
+          <!-- Birthday Custom Frame -->
+          <div class="frame-card selected" data-frame="birthday" data-cat="celebration" data-photos="3" id="frame-birthday">
+            <div class="frame-preview" style="background-image: url('assets/frames/birthday.png'); background-size: contain; background-repeat: no-repeat; background-position: center; background-color: #d4e8f5; border-radius: 12px;"></div>
+            <p class="frame-label">🎂 Happy Birthday</p>
+            <span class="frame-info">3 foto</span>
+          </div>
+
+          <!-- Friends Custom Frame -->
+          <div class="frame-card" data-frame="friends" data-cat="social" data-photos="3" id="frame-friends">
+            <div class="frame-preview" style="background-image: url('assets/frames/friends.png'); background-size: contain; background-repeat: no-repeat; background-position: center; background-color: #ffe680; border-radius: 12px;"></div>
+            <p class="frame-label">🐰 Friends</p>
+            <span class="frame-info">3 foto</span>
+          </div>
+
+          <!-- Newspaper Custom Frame -->
+          <div class="frame-card" data-frame="newspaper" data-cat="story" data-photos="3" id="frame-newspaper">
+            <div class="frame-preview" style="background-image: url('assets/frames/newspaper.png'); background-size: contain; background-repeat: no-repeat; background-position: center; background-color: #f4f1ea; border-radius: 12px;"></div>
+            <p class="frame-label">📰 Kisah Dua Hati</p>
+            <span class="frame-info">3 foto</span>
+          </div>
+
+          <!-- Filmstrip Custom Frame -->
+          <div class="frame-card" data-frame="filmstrip" data-cat="story" data-photos="3" id="frame-filmstrip">
+            <div class="frame-preview" style="background-image: url('assets/frames/filmstrip.png'); background-size: contain; background-repeat: no-repeat; background-position: center; background-color: #1a1a1a; border-radius: 12px;"></div>
+            <p class="frame-label">🎞️ Retro Filmstrip</p>
+            <span class="frame-info">3 foto</span>
+          </div>
+
+          <!-- Fish Underwater Frame -->
+          <div class="frame-card" data-frame="fish" data-cat="adventure" data-photos="2" id="frame-fish">
+            <div class="frame-preview" style="background-image: url('assets/frames/fish.png'); background-size: contain; background-repeat: no-repeat; background-position: center; background-color: #b8dde8; border-radius: 12px;"></div>
+            <p class="frame-label">🐟 Underwater Fish</p>
+            <span class="frame-info">2 foto</span>
+          </div>
+
+          <!-- Moments with Friends Frame -->
+          <div class="frame-card" data-frame="moments-friends" data-cat="social" data-photos="3" id="frame-moments-friends">
+            <div class="frame-preview" style="background-image: url('assets/frames/frame-cleaned (1).png'); background-size: contain; background-repeat: no-repeat; background-position: center; background-color: #f5f5f5; border-radius: 12px;"></div>
+            <p class="frame-label">✨ Moments with Friends</p>
+            <span class="frame-info">3 foto</span>
+          </div>
+
+          <!-- Live in the Moment Frame -->
+          <div class="frame-card" data-frame="live-moment" data-cat="story" data-photos="3" id="frame-live-moment">
+            <div class="frame-preview" style="background-image: url('assets/frames/frame-cleaned (2).png'); background-size: contain; background-repeat: no-repeat; background-position: center; background-color: #f0e8e0; border-radius: 12px;"></div>
+            <p class="frame-label">📖 Live in the Moment</p>
+            <span class="frame-info">3 foto</span>
+          </div>
+
+          <!-- Picture Perfect Frame -->
+          <div class="frame-card" data-frame="picture-perfect" data-cat="celebration" data-photos="3" id="frame-picture-perfect">
+            <div class="frame-preview" style="background-image: url('assets/frames/frame-cleaned.png'); background-size: contain; background-repeat: no-repeat; background-position: center; background-color: #f5f5f5; border-radius: 12px;"></div>
+            <p class="frame-label">🌟 Picture Perfect</p>
+            <span class="frame-info">3 foto</span>
+          </div>
+
+        </div>
+      </div>
+      <div class="screen-footer">
+        <button class="btn-primary btn-next" data-goto="screen-camera">
+          Lanjut <span class="material-symbols-rounded">arrow_forward</span>
+        </button>
+      </div>
+    </section>
+
+    <!-- ===== SCREEN 6: CAMERA CAPTURE ===== -->
+    <section id="screen-camera" class="screen" data-step="5">
+      <div class="screen-header compact">
+        <button class="btn-back" data-action="back"><span class="material-symbols-rounded">arrow_back</span></button>
+        <div class="header-info">
+          <h2>Saatnya Foto!</h2>
+          <div class="step-indicator"><span class="step-current">5</span> / 6</div>
+        </div>
+      </div>
+      <div class="screen-body camera-body">
+        <div class="photo-progress" id="photo-progress">
+          <span class="dot done"></span>
+          <span class="dot active"></span>
+          <span class="dot"></span>
+          <span class="dot"></span>
+        </div>
+        <p class="camera-instruction" id="camera-instruction">Bersiap-siap! Foto ke-<span id="photo-num">1</span> dari <span id="photo-total">4</span></p>
+        <div class="viewfinder" id="viewfinder">
+          <video id="camera-feed" autoplay playsinline muted></video>
+          <div class="viewfinder-overlay">
+            <div class="face-guide"></div>
+          </div>
+          <div class="countdown-overlay hidden" id="countdown-overlay">
+            <span class="countdown-num" id="countdown-num">3</span>
+          </div>
+          <div class="flash-overlay hidden" id="flash-overlay"></div>
+        </div>
+        <div class="camera-controls">
+          <button class="btn-outline btn-retake hidden" id="btn-retake">
+            <span class="material-symbols-rounded">replay</span> Ulangi
+          </button>
+          <button class="btn-capture" id="btn-capture">
+            <span class="material-symbols-rounded">camera</span>
+          </button>
+          <button class="btn-primary btn-ok hidden" id="btn-photo-ok">
+            OK <span class="material-symbols-rounded">check</span>
+          </button>
+        </div>
+        <div class="photo-thumbnails" id="photo-thumbnails"></div>
+      </div>
+    </section>
+
+    <!-- ===== SCREEN 7: FILTER SELECTION ===== -->
+    <section id="screen-filter" class="screen" data-step="6">
+      <div class="screen-header">
+        <button class="btn-back" data-action="back"><span class="material-symbols-rounded">arrow_back</span></button>
+        <div class="header-info">
+          <h2>Pilih Filter</h2>
+          <div class="step-indicator"><span class="step-current">6</span> / 6</div>
+        </div>
+      </div>
+      <div class="screen-body filter-body">
+        <div class="filter-preview" id="filter-preview">
+          <canvas id="filter-canvas" width="400" height="560"></canvas>
+        </div>
+        <div class="filter-options" id="filter-options">
+          <button class="filter-chip active" data-filter="original">Original</button>
+          <button class="filter-chip" data-filter="bw">B&W</button>
+          <button class="filter-chip" data-filter="vintage">Vintage</button>
+          <button class="filter-chip" data-filter="warm">Warm</button>
+          <button class="filter-chip" data-filter="cool">Cool</button>
+          <button class="filter-chip" data-filter="dramatic">Dramatic</button>
+          <button class="filter-chip" data-filter="pastel">Pastel</button>
+          <button class="filter-chip" data-filter="retro">Retro</button>
+        </div>
+        <div class="apply-all-toggle">
+          <label class="toggle-label">
+            <input type="checkbox" id="apply-all" checked />
+            <span class="toggle-switch"></span>
+            Terapkan ke Semua Foto
+          </label>
+        </div>
+      </div>
+      <div class="screen-footer">
+        <button class="btn-outline" data-action="back">Kembali</button>
+        <button class="btn-primary btn-gold" id="btn-finish">
+          <span class="material-symbols-rounded">print</span> Selesai & Cetak
+        </button>
+      </div>
+    </section>
+
+    <!-- ===== SCREEN 8: RESULTS ===== -->
+    <section id="screen-result" class="screen" data-step="7">
+      <div class="screen-body result-body">
+        <div class="confetti-overlay" aria-hidden="true" id="confetti"></div>
+        <div class="result-header">
+          <span class="material-symbols-rounded result-icon">celebration</span>
+          <h2>Foto Kamu Siap! 🎉</h2>
+        </div>
+        <div class="result-content">
+          <div class="result-preview glass-card" id="result-preview">
+            <canvas id="result-canvas" width="300" height="420"></canvas>
+          </div>
+          <div class="result-actions-row">
+            <div class="glass-card result-download result-primary">
+              <div class="action-header">
+                <span class="material-symbols-rounded action-icon download-icon">download</span>
+                <h4>Download Digital</h4>
+              </div>
+              <div class="download-qr" id="download-qr">
+                <svg viewBox="0 0 100 100" class="mini-qr">
+                  <rect width="100" height="100" fill="#fff" rx="8"/>
+                  <rect x="10" y="10" width="25" height="25" rx="3" fill="#071325"/>
+                  <rect x="65" y="10" width="25" height="25" rx="3" fill="#071325"/>
+                  <rect x="10" y="65" width="25" height="25" rx="3" fill="#071325"/>
+                  <rect x="15" y="15" width="15" height="15" rx="2" fill="#fff"/>
+                  <rect x="70" y="15" width="15" height="15" rx="2" fill="#fff"/>
+                  <rect x="15" y="70" width="15" height="15" rx="2" fill="#fff"/>
+                  <rect x="20" y="20" width="5" height="5" fill="#071325"/>
+                  <rect x="75" y="20" width="5" height="5" fill="#071325"/>
+                  <rect x="20" y="75" width="5" height="5" fill="#071325"/>
+                  <rect x="40" y="10" width="5" height="5" fill="#071325"/>
+                  <rect x="50" y="10" width="5" height="5" fill="#071325"/>
+                  <rect x="40" y="20" width="5" height="5" fill="#071325"/>
+                  <rect x="45" y="25" width="10" height="5" fill="#071325"/>
+                  <rect x="40" y="35" width="15" height="5" fill="#071325"/>
+                  <rect x="40" y="45" width="5" height="5" fill="#071325"/>
+                  <rect x="50" y="45" width="5" height="5" fill="#071325"/>
+                  <rect x="60" y="45" width="5" height="5" fill="#071325"/>
+                  <rect x="40" y="55" width="10" height="5" fill="#071325"/>
+                  <rect x="55" y="55" width="5" height="5" fill="#071325"/>
+                  <rect x="40" y="65" width="5" height="5" fill="#071325"/>
+                  <rect x="50" y="70" width="5" height="5" fill="#071325"/>
+                  <rect x="65" y="45" width="25" height="5" fill="#071325"/>
+                  <rect x="65" y="55" width="10" height="5" fill="#071325"/>
+                  <rect x="80" y="55" width="10" height="5" fill="#071325"/>
+                  <rect x="65" y="65" width="5" height="5" fill="#071325"/>
+                  <rect x="75" y="65" width="15" height="5" fill="#071325"/>
+                  <rect x="65" y="75" width="10" height="5" fill="#071325"/>
+                  <rect x="80" y="75" width="10" height="5" fill="#071325"/>
+                  <rect x="65" y="85" width="5" height="5" fill="#071325"/>
+                  <rect x="75" y="85" width="5" height="5" fill="#071325"/>
+                  <rect x="85" y="85" width="5" height="5" fill="#071325"/>
+                </svg>
+              </div>
+              <div class="qr-info">
+                <p class="qr-label">Scan untuk Download</p>
+                <p class="qr-sub">Google Drive • Berlaku 24 jam</p>
+              </div>
+              <button class="btn-primary result-action-btn" id="btn-download">
+                <span class="material-symbols-rounded">download</span> Download JPG
+              </button>
+            </div>
+            <div class="glass-card result-print result-secondary">
+              <div class="action-header">
+                <span class="material-symbols-rounded action-icon print-icon">print</span>
+                <h4>Cetak Foto</h4>
+              </div>
+              <div class="print-status">
+                <span class="material-symbols-rounded print-spinner spinning">sync</span>
+                <p id="print-status-text">Sedang mencetak...</p>
+                <div class="print-progress">
+                  <div class="print-progress-bar" id="print-bar"></div>
+                </div>
+                <p class="print-est">Estimasi: 30 detik</p>
+              </div>
+              <button class="btn-outline result-action-btn" id="btn-print">
+                <span class="material-symbols-rounded">print</span> Buka Dialog Cetak
+              </button>
+            </div>
+          </div>
+        </div>
+        <p class="result-thanks">Terima kasih sudah menggunakan <strong>Kothak Photo</strong>! 📸</p>
+        <p class="result-social">Share momen kamu! <span class="gold">@kothakphoto</span></p>
+      </div>
+      <div class="screen-footer">
+        <button class="btn-primary btn-gold" id="btn-done">
+          Selesai
+        </button>
+        <p class="auto-return" id="auto-return">Kembali ke beranda dalam <span id="return-timer">30</span> detik</p>
+      </div>
+    </section>
+
+    <!-- Hidden canvas for photo processing -->
+    <canvas id="hidden-canvas" class="hidden-canvas"></canvas>
+  </div>
+
+  <script src="kothak-photo.js"></script>
+</body>
+</html>

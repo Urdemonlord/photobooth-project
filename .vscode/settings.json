@@ -1,0 +1,21 @@
+{
+  "files.exclude": {
+    "**/node_modules": true,
+    "**/.venv": true,
+    "**/data/results": true
+  },
+  "files.watcherExclude": {
+    "**/node_modules/**": true,
+    "**/.venv/**": true,
+    "**/data/results/**": true
+  },
+  "search.exclude": {
+    "**/node_modules": true,
+    "**/.venv": true,
+    "**/data/results": true
+  },
+  "yaml.schemaStore.enable": false,
+  "yaml.schemas": {
+    "./.vscode/funding.schema.json": "**/.github/FUNDING.yml"
+  }
+}
