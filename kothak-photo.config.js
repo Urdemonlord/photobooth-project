@@ -30,22 +30,28 @@
   }
 
   const DEFAULT_PACKAGE_RULES = {
-    reguler: {
-      captureTimeSeconds: 60,
-      allowedFrames: ['birthday'],
-      allowedFilters: ['original', 'bw', 'warm'],
+    single: {
+      captureTimeSeconds: 50,
+      allowedFrames: ['birthday', 'friends'],
+      allowedFilters: ['original', 'bw', 'natural'],
       printCopies: 1,
     },
-    premium: {
+    bestie: {
+      captureTimeSeconds: 80,
+      allowedFrames: ['birthday', 'friends', 'moments-friends', 'picture-perfect'],
+      allowedFilters: ['original', 'bw', 'vintage', 'warm', 'cool', 'natural'],
+      printCopies: 1,
+    },
+    couple: {
       captureTimeSeconds: 90,
-      allowedFrames: ['birthday', 'friends', 'picture-perfect'],
-      allowedFilters: ['original', 'bw', 'vintage', 'warm', 'cool', 'dramatic', 'pastel', 'retro'],
+      allowedFrames: ['newspaper', 'live-moment', 'picture-perfect'],
+      allowedFilters: ['original', 'bw', 'vintage', 'warm', 'softglow', 'film', 'natural'],
       printCopies: 1,
     },
-    group: {
+    signature: {
       captureTimeSeconds: 120,
       allowedFrames: 'all',
-      allowedFilters: ['original', 'bw', 'vintage', 'warm', 'cool', 'dramatic', 'pastel', 'retro'],
+      allowedFilters: ['original', 'bw', 'vintage', 'warm', 'cool', 'dramatic', 'pastel', 'retro', 'softglow', 'film', 'natural'],
       printCopies: 2,
     },
   };

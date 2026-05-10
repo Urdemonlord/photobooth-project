@@ -40,14 +40,14 @@
           <div class="brand-icon">
             <span class="material-symbols-rounded">photo_camera</span>
           </div>
-          <h1 class="brand-name">Kothak<span class="gold">Photo</span></h1>
-          <p class="brand-tagline">Capture Your Moments, Share Your Joy</p>
+          <h1 class="brand-name">LAZA<span class="gold">PHOTOBOOTH</span></h1>
+          <p class="brand-tagline">Ready To Snap? 📸</p>
         </div>
         <button id="btn-start" class="btn-start pulse-glow">
           <span class="material-symbols-rounded">touch_app</span>
-          MULAI / START
+          START SESSION
         </button>
-        <p class="tap-hint">Tap untuk memulai sesi foto</p>
+        <p class="tap-hint">Touch anywhere to begin</p>
       </div>
     </section>
 
@@ -56,53 +56,61 @@
       <div class="screen-header">
         <button class="btn-back" data-action="back"><span class="material-symbols-rounded">arrow_back</span></button>
         <div class="header-info">
-          <h2>Pilih Paket</h2>
+          <h2>Pilih Session Kamu ✨</h2>
           <div class="step-indicator"><span class="step-current">1</span> / 6</div>
         </div>
       </div>
       <div class="screen-body">
         <div class="package-grid">
-          <div class="package-card selected" data-package="premium" id="pkg-premium">
-            <div class="pkg-badge popular">TERPOPULER</div>
-            <span class="material-symbols-rounded pkg-icon">auto_awesome</span>
-            <h3>Paket Premium</h3>
-            <p class="pkg-price">Rp 40.000</p>
+          <div class="package-card" data-package="single" id="pkg-single">
+            <div class="pkg-badge">STARTER</div>
+            <span class="material-symbols-rounded pkg-icon">photo_camera</span>
+            <h3>Single Shot</h3>
+            <p class="pkg-price">Rp 15.000</p>
             <ul class="pkg-features">
-              <li><span class="material-symbols-rounded check-icon">check_circle</span> <span>6 foto strip</span></li>
-              <li><span class="material-symbols-rounded check-icon">check_circle</span> <span>3 frame pilihan</span></li>
-              <li><span class="material-symbols-rounded check-icon">check_circle</span> <span>Digital + Cetak</span></li>
-              <li><span class="material-symbols-rounded check-icon">check_circle</span> <span>Filter premium</span></li>
+              <li><span class="material-symbols-rounded check-icon">check_circle</span> <span>2 Photo Strip</span></li>
+              <li><span class="material-symbols-rounded check-icon">check_circle</span> <span>Digital Copy</span></li>
+              <li><span class="material-symbols-rounded check-icon">check_circle</span> <span>QR Download</span></li>
             </ul>
           </div>
-          <div class="package-card" data-package="group" id="pkg-group">
-            <div class="pkg-badge"></div>
+          <div class="package-card selected" data-package="bestie" id="pkg-bestie">
+            <div class="pkg-badge popular">MOST POPULAR</div>
             <span class="material-symbols-rounded pkg-icon">groups</span>
-            <h3>Paket Group</h3>
-            <p class="pkg-price">Rp 50.000</p>
-            <ul class="pkg-features">
-              <li><span class="material-symbols-rounded check-icon">check_circle</span> <span>8 foto strip</span></li>
-              <li><span class="material-symbols-rounded check-icon">check_circle</span> <span>Semua frame</span></li>
-              <li><span class="material-symbols-rounded check-icon">check_circle</span> <span>Digital + Cetak</span></li>
-              <li><span class="material-symbols-rounded check-icon">check_circle</span> <span>Filter premium</span></li>
-              <li><span class="material-symbols-rounded check-icon">check_circle</span> <span>Extra print</span></li>
-            </ul>
-          </div>
-          <div class="package-card" data-package="reguler" id="pkg-reguler">
-            <div class="pkg-badge"></div>
-            <span class="material-symbols-rounded pkg-icon">photo_library</span>
-            <h3>Paket Reguler</h3>
+            <h3>Bestie Session</h3>
             <p class="pkg-price">Rp 25.000</p>
             <ul class="pkg-features">
-              <li><span class="material-symbols-rounded check-icon">check_circle</span> <span>4 foto strip</span></li>
-              <li><span class="material-symbols-rounded check-icon">check_circle</span> <span>1 frame pilihan</span></li>
-              <li><span class="material-symbols-rounded check-icon">check_circle</span> <span>Digital + Cetak</span></li>
+              <li><span class="material-symbols-rounded check-icon">check_circle</span> <span>4 Photo Strip</span></li>
+              <li><span class="material-symbols-rounded check-icon">check_circle</span> <span>Multiple Shots</span></li>
+              <li><span class="material-symbols-rounded check-icon">check_circle</span> <span>Digital + QR Download</span></li>
+            </ul>
+          </div>
+          <div class="package-card" data-package="couple" id="pkg-couple">
+            <div class="pkg-badge">COUPLE</div>
+            <span class="material-symbols-rounded pkg-icon">favorite</span>
+            <h3>Couple Session</h3>
+            <p class="pkg-price">Rp 30.000</p>
+            <ul class="pkg-features">
+              <li><span class="material-symbols-rounded check-icon">check_circle</span> <span>Premium Couple Frame</span></li>
+              <li><span class="material-symbols-rounded check-icon">check_circle</span> <span>4 Photo Strip</span></li>
+              <li><span class="material-symbols-rounded check-icon">check_circle</span> <span>Special Filter</span></li>
+            </ul>
+          </div>
+          <div class="package-card" data-package="signature" id="pkg-signature">
+            <div class="pkg-badge">SIGNATURE</div>
+            <span class="material-symbols-rounded pkg-icon">diamond</span>
+            <h3>Signature Session</h3>
+            <p class="pkg-price">Rp 35.000</p>
+            <ul class="pkg-features">
+              <li><span class="material-symbols-rounded check-icon">check_circle</span> <span>Exclusive Frame</span></li>
+              <li><span class="material-symbols-rounded check-icon">check_circle</span> <span>HD Digital Copy</span></li>
+              <li><span class="material-symbols-rounded check-icon">check_circle</span> <span>QR Download</span></li>
             </ul>
           </div>
         </div>
       </div>
       <div class="screen-footer">
-        <button class="btn-primary btn-next" data-goto="screen-data">
-          Lanjut <span class="material-symbols-rounded">arrow_forward</span>
+        <button class="btn-primary btn-next" data-goto="screen-frame">
+          PILIH PAKET INI <span class="material-symbols-rounded">arrow_forward</span>
         </button>
       </div>
     </section>
@@ -353,8 +361,8 @@
         </div>
       </div>
       <div class="screen-footer">
-        <button class="btn-primary btn-next" data-goto="screen-camera">
-          Lanjut <span class="material-symbols-rounded">arrow_forward</span>
+        <button class="btn-primary btn-next" data-goto="screen-filter">
+          CONTINUE <span class="material-symbols-rounded">arrow_forward</span>
         </button>
       </div>
     </section>
@@ -415,14 +423,13 @@
           <canvas id="filter-canvas" width="400" height="560"></canvas>
         </div>
         <div class="filter-options" id="filter-options">
-          <button class="filter-chip active" data-filter="original">Original</button>
-          <button class="filter-chip" data-filter="bw">B&W</button>
+          <button class="filter-chip active" data-filter="original">Natural</button>
           <button class="filter-chip" data-filter="vintage">Vintage</button>
+          <button class="filter-chip" data-filter="bw">BW</button>
+          <button class="filter-chip" data-filter="softglow">Soft Glow</button>
+          <button class="filter-chip" data-filter="film">Film</button>
           <button class="filter-chip" data-filter="warm">Warm</button>
           <button class="filter-chip" data-filter="cool">Cool</button>
-          <button class="filter-chip" data-filter="dramatic">Dramatic</button>
-          <button class="filter-chip" data-filter="pastel">Pastel</button>
-          <button class="filter-chip" data-filter="retro">Retro</button>
         </div>
         <div class="apply-all-toggle">
           <label class="toggle-label">
@@ -434,8 +441,8 @@
       </div>
       <div class="screen-footer">
         <button class="btn-outline" data-action="back">Kembali</button>
-        <button class="btn-primary btn-gold" id="btn-finish">
-          <span class="material-symbols-rounded">print</span> Selesai & Cetak
+        <button class="btn-primary btn-gold" id="btn-to-camera">
+          <span class="material-symbols-rounded">camera</span> LANJUT FOTO
         </button>
       </div>
     </section>
@@ -456,7 +463,7 @@
             <div class="glass-card result-download result-primary">
               <div class="action-header">
                 <span class="material-symbols-rounded action-icon download-icon">download</span>
-                <h4>Download Digital</h4>
+                <h4>Download QR</h4>
               </div>
               <div class="download-qr" id="download-qr">
                 <svg viewBox="0 0 100 100" class="mini-qr">
@@ -505,7 +512,7 @@
             <div class="glass-card result-print result-secondary">
               <div class="action-header">
                 <span class="material-symbols-rounded action-icon print-icon">print</span>
-                <h4>Cetak Foto</h4>
+                <h4>Print Photo</h4>
               </div>
               <div class="print-status">
                 <span class="material-symbols-rounded print-spinner spinning">sync</span>
@@ -516,8 +523,9 @@
                 <p class="print-est">Estimasi: 30 detik</p>
               </div>
               <button class="btn-outline result-action-btn" id="btn-print">
-                <span class="material-symbols-rounded">print</span> Buka Dialog Cetak
+                <span class="material-symbols-rounded">print</span> PRINT PHOTO
               </button>
+              <p class="print-est">Ukuran cetak: 2x6 strip</p>
             </div>
           </div>
         </div>
@@ -550,9 +558,10 @@
         <div id="package-settings-list" class="package-settings-list"></div>
 
         <div class="package-settings-presets" id="package-settings-presets">
-          <button class="btn-outline btn-preset" type="button" data-preset="reguler">Preset Reguler</button>
-          <button class="btn-outline btn-preset" type="button" data-preset="premium">Preset Premium</button>
-          <button class="btn-outline btn-preset" type="button" data-preset="group">Preset Group</button>
+          <button class="btn-outline btn-preset" type="button" data-preset="single">Preset Single</button>
+          <button class="btn-outline btn-preset" type="button" data-preset="bestie">Preset Bestie</button>
+          <button class="btn-outline btn-preset" type="button" data-preset="couple">Preset Couple</button>
+          <button class="btn-outline btn-preset" type="button" data-preset="signature">Preset Signature</button>
         </div>
 
         <div class="package-settings-print">

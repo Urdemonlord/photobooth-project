@@ -12,22 +12,28 @@
   let packageRules = typeof KothakConfig.getPackageRules === 'function'
     ? KothakConfig.getPackageRules()
     : {
-      reguler: {
-        captureTimeSeconds: 60,
-        allowedFrames: ['birthday'],
-        allowedFilters: ['original', 'bw', 'warm'],
+      single: {
+        captureTimeSeconds: 50,
+        allowedFrames: ['birthday', 'friends'],
+        allowedFilters: ['original', 'bw', 'natural'],
         printCopies: 1,
       },
-      premium: {
+      bestie: {
+        captureTimeSeconds: 80,
+        allowedFrames: ['birthday', 'friends', 'moments-friends', 'picture-perfect'],
+        allowedFilters: ['original', 'bw', 'vintage', 'warm', 'cool', 'natural'],
+        printCopies: 1,
+      },
+      couple: {
         captureTimeSeconds: 90,
-        allowedFrames: ['birthday', 'friends', 'picture-perfect'],
-        allowedFilters: ['original', 'bw', 'vintage', 'warm', 'cool', 'dramatic', 'pastel', 'retro'],
+        allowedFrames: ['newspaper', 'live-moment', 'picture-perfect'],
+        allowedFilters: ['original', 'bw', 'vintage', 'warm', 'softglow', 'film', 'natural'],
         printCopies: 1,
       },
-      group: {
+      signature: {
         captureTimeSeconds: 120,
         allowedFrames: 'all',
-        allowedFilters: ['original', 'bw', 'vintage', 'warm', 'cool', 'dramatic', 'pastel', 'retro'],
+        allowedFilters: ['original', 'bw', 'vintage', 'warm', 'cool', 'dramatic', 'pastel', 'retro', 'softglow', 'film', 'natural'],
         printCopies: 2,
       },
     };
@@ -39,8 +45,8 @@
   const state = {
     currentScreen: 'screen-landing',
     history: [],
-    selectedPackage: 'premium',
-    packagePrices: { reguler: 25000, premium: 40000, group: 50000 },
+    selectedPackage: 'bestie',
+    packagePrices: { single: 15000, bestie: 25000, couple: 30000, signature: 35000 },
     discount: 0,
     userName: '',
     userPhone: '',
@@ -171,7 +177,7 @@
   }
 
   function getPackageRule() {
-    return packageRules[state.selectedPackage] || packageRules.premium;
+    return packageRules[state.selectedPackage] || packageRules.bestie || Object.values(packageRules)[0];
   }
 
   function formatSeconds(totalSeconds) {
@@ -1182,7 +1188,7 @@
       if (state.currentPhotoIndex >= state.selectedFramePhotos) {
         // All photos taken
         stopPhotoSessionTimer();
-        goToScreen('screen-filter');
+        goToScreen('screen-result');
       } else {
         updateCameraUI();
       }
@@ -1312,8 +1318,8 @@
       });
     });
 
-    $('#btn-finish').addEventListener('click', () => {
-      goToScreen('screen-result');
+    $('#btn-to-camera').addEventListener('click', () => {
+      goToScreen('screen-camera');
     });
   }
 
@@ -1968,7 +1974,7 @@
     state.discount = 0;
     state.userName = '';
     state.userPhone = '';
-    state.selectedPackage = 'premium';
+    state.selectedPackage = 'bestie';
     state.selectedFrame = 'birthday';
     state.selectedFramePhotos = 3;
     state.selectedFilter = 'original';

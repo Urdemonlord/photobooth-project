@@ -6,28 +6,28 @@
 /* --- Design Tokens --- */
 :root {
   /* Surface Hierarchy */
-  --bg: #071325;
-  --surface: #071325;
-  --surface-container-lowest: #030e20;
-  --surface-container-low: #101c2e;
-  --surface-container: #142032;
-  --surface-container-high: #1f2a3d;
-  --surface-container-highest: #2a3548;
-  --surface-bright: #2e394d;
-  --surface-variant: #2a3548;
+  --bg: #0E2A47;
+  --surface: #0E2A47;
+  --surface-container-lowest: #0a1f35;
+  --surface-container-low: #112f4f;
+  --surface-container: #163b63;
+  --surface-container-high: #1f4d7c;
+  --surface-container-highest: #2a5f95;
+  --surface-bright: #3974ad;
+  --surface-variant: #1f4d7c;
 
   /* Brand Colors */
-  --primary: #bbc7df;
-  --primary-container: #0a1628;
-  --gold: #ffdb3c;
-  --gold-dim: #e9c400;
-  --gold-fixed: #ffe16d;
-  --secondary: #fff9ef;
-  --on-primary: #253144;
-  --on-surface: #d7e3fc;
-  --on-surface-variant: #c5c6cd;
-  --outline: #8f9097;
-  --outline-variant: #45474c;
+  --primary: #F48B4A;
+  --primary-container: #c86a2e;
+  --gold: #F6C3A6;
+  --gold-dim: #e6a57f;
+  --gold-fixed: #ffd8c0;
+  --secondary: #FFF4EA;
+  --on-primary: #fff7f1;
+  --on-surface: #FFF4EA;
+  --on-surface-variant: #f2d9ca;
+  --outline: #efc9b4;
+  --outline-variant: #a67e67;
   --error: #ffb4ab;
   --success: #4ADE80;
 
@@ -497,10 +497,19 @@ h1, h2, h3, h4 {
    SCREEN 2: PACKAGE SELECTION
    =================================================== */
 .package-grid {
-  display: flex;
-  flex-direction: column;
+  display: grid;
+  grid-auto-flow: column;
+  grid-auto-columns: minmax(260px, 1fr);
   gap: var(--sp-lg);
   padding-bottom: var(--sp-lg);
+  overflow-x: auto;
+  overscroll-behavior-x: contain;
+  scroll-snap-type: x mandatory;
+}
+
+.package-grid .package-card {
+  scroll-snap-align: center;
+  min-height: 320px;
 }
 
 .package-card {
@@ -525,11 +534,22 @@ h1, h2, h3, h4 {
 }
 
 .pkg-badge {
-  display: none;
+  display: block;
+  position: absolute;
+  top: -12px;
+  right: var(--sp-lg);
+  background: linear-gradient(180deg, #ffd8c0 0%, var(--gold) 40%, #f59e0b 100%);
+  color: #1a1400;
+  font-family: var(--font-display);
+  font-size: 0.68rem;
+  font-weight: 800;
+  padding: 6px 12px;
+  border-radius: var(--r-full);
+  letter-spacing: 0.04em;
+  white-space: nowrap;
 }
 
 .pkg-badge.popular {
-  display: block;
   position: absolute;
   top: -12px;
   right: var(--sp-lg);
