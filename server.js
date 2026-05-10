@@ -15,6 +15,7 @@ const RESULTS_DIR = path.join(DATA_DIR, 'results');
 const SESSIONS_PATH = path.join(DATA_DIR, 'payment-sessions.json');
 const PRINT_JOBS_PATH = path.join(DATA_DIR, 'print-jobs.json');
 const PUBLIC_URL = process.env.PUBLIC_URL || '';
+const PUBLIC_RESULTS_BASE_URL = String(process.env.PUBLIC_RESULTS_BASE_URL || '').trim().replace(/\/$/, '');
 const PAKASIR_BASE_URL = process.env.PAKASIR_BASE_URL || 'https://app.pakasir.com';
 const PAKASIR_PROJECT = process.env.PAKASIR_PROJECT || process.env.PAKASIR_SLUG || '';
 const PAKASIR_API_KEY = process.env.PAKASIR_API_KEY || '';
@@ -153,6 +154,12 @@ function getBaseUrl(req) {
   const protocol = req.get('x-forwarded-proto') || req.protocol;
   const host = req.get('x-forwarded-host') || req.get('host');
   return `${protocol}://${host}`;
+}
+
+function getPublicResultDirectUrl(req, fileName = '') {
+  if (!fileName) return '';
+  if (PUBLIC_RESULTS_BASE_URL) return `${PUBLIC_RESULTS_BASE_URL}/${encodeURIComponent(fileName)}`;
+  return `${getBaseUrl(req)}/data/results/${encodeURIComponent(fileName)}`;
 }
 
 async function ensureDirectories() {
@@ -1186,13 +1193,15 @@ app.post('/api/results', requireInternalApiKey, async (req, res) => {
     });
 
     const shareUrl = `${getBaseUrl(req)}/share/${record.token}`;
-    const downloadUrl = `${shareUrl}/download`;
-    const downloadQrDataUrl = await createQrDataUrl(shareUrl);
+    const directPublicUrl = getPublicResultDirectUrl(req, record.fileName);
+    const downloadUrl = directPublicUrl || `${shareUrl}/download`;
+    const downloadQrDataUrl = await createQrDataUrl(downloadUrl);
 
     res.json({
       token: record.token,
       shareUrl,
       downloadUrl,
+      directPublicUrl,
       downloadQrDataUrl,
       createdAt: record.createdAt,
     });

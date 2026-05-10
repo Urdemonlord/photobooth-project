@@ -41,6 +41,8 @@ Lalu buka `http://localhost:3000`.
 
 ## Security & Operasional
 
+- `PUBLIC_URL` untuk domain publik aplikasi.
+- `PUBLIC_RESULTS_BASE_URL` opsional untuk domain/file-base publik hasil foto (mis. Cloudflare R2 public/custom domain). Jika diisi, QR download akan langsung mengarah ke `${PUBLIC_RESULTS_BASE_URL}/<filename>`.
 - `CORS_ORIGINS` untuk whitelist origin frontend (pisahkan dengan koma).
 - `INTERNAL_API_KEY` untuk proteksi endpoint `/api/*`.
   - Kirim header `x-internal-api-key: <INTERNAL_API_KEY>` dari frontend/backend caller.
