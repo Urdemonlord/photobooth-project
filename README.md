@@ -32,7 +32,11 @@ Lalu buka `http://localhost:3000`.
 - `POST /api/qris/:orderId/cancel` untuk membatalkan transaksi.
 - `POST /api/results` untuk menyimpan hasil foto dan membuat tautan share.
 - `POST /api/print-jobs` untuk membuat job cetak dari token hasil foto.
-- `GET /api/print-jobs/:id` untuk polling status cetak (`queued|printing|done|failed`).
+- `GET /api/print-jobs` untuk list job cetak (opsional filter `?status=`).
+- `GET /api/print-jobs/:id` untuk polling status cetak (`queued|printing|done|failed|cancelled`).
+- `POST /api/print-jobs/:id/retry` untuk requeue job `failed/cancelled`.
+- `POST /api/print-jobs/:id/cancel` untuk batalkan job yang masih `queued`.
+- `GET /admin/print-jobs` untuk dashboard operator print queue.
 - `GET /share/:token` untuk halaman unduh hasil.
 
 ## Security & Operasional

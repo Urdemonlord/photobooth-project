@@ -572,6 +572,12 @@ function runPrintCommand(filePath) {
   });
 }
 
+function removeJobFromQueue(jobId) {
+  const nextQueue = printQueue.filter((id) => id !== jobId);
+  printQueue.length = 0;
+  printQueue.push(...nextQueue);
+}
+
 async function processPrintQueue() {
   if (isPrintWorkerRunning) return;
   isPrintWorkerRunning = true;
@@ -784,6 +790,170 @@ app.get('/health', (_req, res) => {
   res.json({ ok: true });
 });
 
+app.get('/admin/print-jobs', (_req, res) => {
+  res.type('html').send(`<!doctype html>
+<html lang="id">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Operator Print Queue</title>
+  <style>
+    body { font-family: system-ui, sans-serif; margin: 0; background: #0b1220; color: #e5e7eb; }
+    .wrap { max-width: 1100px; margin: 0 auto; padding: 20px; }
+    .card { background: #111827; border: 1px solid #1f2937; border-radius: 12px; padding: 16px; margin-bottom: 12px; }
+    input, select, button { padding: 10px; border-radius: 8px; border: 1px solid #374151; background: #0f172a; color: #e5e7eb; }
+    button { cursor: pointer; }
+    .row { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+    .muted { color: #94a3b8; }
+    .ok { color: #22c55e; }
+    .err { color: #ef4444; }
+    table { width: 100%; border-collapse: collapse; font-size: 14px; }
+    th, td { text-align: left; border-bottom: 1px solid #1f2937; padding: 8px; vertical-align: top; }
+    .pill { padding: 2px 8px; border-radius: 999px; font-size: 12px; display: inline-block; }
+    .queued { background: #1d4ed8; }
+    .printing { background: #9333ea; }
+    .done { background: #15803d; }
+    .failed { background: #b91c1c; }
+    .cancelled { background: #6b7280; }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <h1>Operator Print Queue</h1>
+    <div class="card row">
+      <input id="apiKey" type="password" placeholder="INTERNAL_API_KEY" style="min-width:240px" />
+      <select id="statusFilter">
+        <option value="">Semua status</option>
+        <option value="queued">queued</option>
+        <option value="printing">printing</option>
+        <option value="done">done</option>
+        <option value="failed">failed</option>
+        <option value="cancelled">cancelled</option>
+      </select>
+      <button id="reloadBtn">Reload</button>
+      <span id="meta" class="muted"></span>
+    </div>
+
+    <div id="flash" class="muted"></div>
+
+    <div class="card">
+      <table>
+        <thead>
+          <tr>
+            <th>ID</th><th>Order</th><th>Status</th><th>Attempts</th><th>Error</th><th>Updated</th><th>Aksi</th>
+          </tr>
+        </thead>
+        <tbody id="rows"></tbody>
+      </table>
+    </div>
+  </div>
+
+<script>
+const rowsEl = document.getElementById('rows');
+const metaEl = document.getElementById('meta');
+const flashEl = document.getElementById('flash');
+const apiKeyEl = document.getElementById('apiKey');
+const statusFilterEl = document.getElementById('statusFilter');
+
+function h(type, attrs = {}, text = '') {
+  const el = document.createElement(type);
+  Object.entries(attrs).forEach(([k,v]) => el.setAttribute(k, v));
+  if (text) el.textContent = text;
+  return el;
+}
+
+async function api(path, opts = {}) {
+  const headers = Object.assign({ 'Content-Type': 'application/json' }, opts.headers || {});
+  const key = apiKeyEl.value.trim();
+  if (key) headers['x-internal-api-key'] = key;
+  const res = await fetch(path, Object.assign({}, opts, { headers }));
+  const payload = await res.json().catch(() => ({}));
+  if (!res.ok) throw new Error(payload.error || 'Request failed');
+  return payload;
+}
+
+function show(msg, cls='muted') {
+  flashEl.className = cls;
+  flashEl.textContent = msg;
+}
+
+function renderJobs(items) {
+  rowsEl.innerHTML = '';
+  if (!items.length) {
+    const tr = h('tr');
+    const td = h('td', { colspan: '7', class: 'muted' }, 'Belum ada print job.');
+    tr.appendChild(td);
+    rowsEl.appendChild(tr);
+    return;
+  }
+
+  for (const job of items) {
+    const tr = h('tr');
+    tr.appendChild(h('td', {}, job.id || '-'));
+    tr.appendChild(h('td', {}, job.orderId || '-'));
+
+    const statusTd = h('td');
+    const statusPill = h('span', { class: 'pill ' + (job.status || '') }, job.status || '-');
+    statusTd.appendChild(statusPill);
+    tr.appendChild(statusTd);
+
+    tr.appendChild(h('td', {}, String(job.attempts || 0)));
+    tr.appendChild(h('td', {}, job.error || '-'));
+    tr.appendChild(h('td', {}, job.updatedAt ? new Date(job.updatedAt).toLocaleString('id-ID') : '-'));
+
+    const actionTd = h('td');
+    const retryBtn = h('button', {}, 'Retry');
+    retryBtn.disabled = !(job.status === 'failed' || job.status === 'cancelled');
+    retryBtn.onclick = async () => {
+      try {
+        await api('/api/print-jobs/' + encodeURIComponent(job.id) + '/retry', { method: 'POST' });
+        show('Retry queued: ' + job.id, 'ok');
+        await loadJobs();
+      } catch (e) { show(e.message, 'err'); }
+    };
+
+    const cancelBtn = h('button', {}, 'Cancel');
+    cancelBtn.disabled = !(job.status === 'queued');
+    cancelBtn.onclick = async () => {
+      try {
+        await api('/api/print-jobs/' + encodeURIComponent(job.id) + '/cancel', { method: 'POST' });
+        show('Job cancelled: ' + job.id, 'ok');
+        await loadJobs();
+      } catch (e) { show(e.message, 'err'); }
+    };
+
+    actionTd.appendChild(retryBtn);
+    actionTd.appendChild(document.createTextNode(' '));
+    actionTd.appendChild(cancelBtn);
+    tr.appendChild(actionTd);
+
+    rowsEl.appendChild(tr);
+  }
+}
+
+async function loadJobs() {
+  try {
+    const status = statusFilterEl.value;
+    const qs = new URLSearchParams();
+    if (status) qs.set('status', status);
+    qs.set('limit', '200');
+    const data = await api('/api/print-jobs?' + qs.toString());
+    renderJobs(data.items || []);
+    metaEl.textContent = 'total: ' + (data.total || 0) + ' · queue: ' + (data.queueLength || 0) + ' · updated: ' + new Date().toLocaleTimeString('id-ID');
+  } catch (e) {
+    show(e.message, 'err');
+  }
+}
+
+document.getElementById('reloadBtn').onclick = loadJobs;
+statusFilterEl.onchange = loadJobs;
+loadJobs();
+setInterval(loadJobs, 5000);
+</script>
+</body>
+</html>`);
+});
+
 app.post('/api/qris/create', requireInternalApiKey, async (req, res) => {
   try {
     const orderId = String(req.body.orderId || '').trim() || `KP-${crypto.randomUUID().replace(/-/g, '').slice(0, 12)}`;
@@ -994,11 +1164,79 @@ app.post('/api/print-jobs', requireInternalApiKey, async (req, res) => {
   }
 });
 
+app.get('/api/print-jobs', requireInternalApiKey, (req, res) => {
+  const status = String(req.query.status || '').trim().toLowerCase();
+  const limit = Math.max(1, Math.min(500, Number(req.query.limit) || 100));
+
+  let items = Array.from(printJobs.values()).sort((a, b) => Date.parse(b.createdAt || 0) - Date.parse(a.createdAt || 0));
+  if (status) {
+    items = items.filter((job) => String(job.status || '').toLowerCase() === status);
+  }
+
+  return res.json({
+    total: items.length,
+    queueLength: printQueue.length,
+    workerRunning: isPrintWorkerRunning,
+    items: items.slice(0, limit),
+  });
+});
+
 app.get('/api/print-jobs/:id', requireInternalApiKey, (req, res) => {
   const job = printJobs.get(String(req.params.id || ''));
   if (!job) {
     return res.status(404).json({ error: 'Print job not found' });
   }
+
+  return res.json(job);
+});
+
+app.post('/api/print-jobs/:id/retry', requireInternalApiKey, async (req, res) => {
+  const jobId = String(req.params.id || '').trim();
+  const job = printJobs.get(jobId);
+  if (!job) {
+    return res.status(404).json({ error: 'Print job not found' });
+  }
+
+  if (!['failed', 'cancelled'].includes(job.status)) {
+    return res.status(409).json({ error: 'Only failed/cancelled job can be retried' });
+  }
+
+  job.status = 'queued';
+  job.error = '';
+  job.errorCode = '';
+  job.output = '';
+  job.finishedAt = '';
+  job.updatedAt = new Date().toISOString();
+  if (!printQueue.includes(jobId)) {
+    printQueue.push(jobId);
+  }
+
+  printJobs.set(jobId, job);
+  await persistPrintJobsToDisk();
+  void processPrintQueue();
+  return res.json(job);
+});
+
+app.post('/api/print-jobs/:id/cancel', requireInternalApiKey, async (req, res) => {
+  const jobId = String(req.params.id || '').trim();
+  const job = printJobs.get(jobId);
+  if (!job) {
+    return res.status(404).json({ error: 'Print job not found' });
+  }
+
+  if (job.status !== 'queued') {
+    return res.status(409).json({ error: 'Only queued job can be cancelled' });
+  }
+
+  removeJobFromQueue(jobId);
+  job.status = 'cancelled';
+  job.error = 'Cancelled by operator';
+  job.errorCode = 'OPERATOR_CANCELLED';
+  job.finishedAt = new Date().toISOString();
+  job.updatedAt = job.finishedAt;
+
+  printJobs.set(jobId, job);
+  await persistPrintJobsToDisk();
 
   return res.json(job);
 });
