@@ -1,4 +1,5 @@
 const express = require('express');
+const rateLimit = require('express-rate-limit');
 const fs = require('fs');
 const fsp = require('fs/promises');
 const path = require('path');
@@ -10,17 +11,28 @@ const app = express();
 const ROOT_DIR = __dirname;
 const DATA_DIR = path.join(ROOT_DIR, 'data');
 const RESULTS_DIR = path.join(DATA_DIR, 'results');
+const SESSIONS_PATH = path.join(DATA_DIR, 'payment-sessions.json');
 const PUBLIC_URL = process.env.PUBLIC_URL || '';
 const PAKASIR_BASE_URL = process.env.PAKASIR_BASE_URL || 'https://app.pakasir.com';
 const PAKASIR_PROJECT = process.env.PAKASIR_PROJECT || process.env.PAKASIR_SLUG || '';
 const PAKASIR_API_KEY = process.env.PAKASIR_API_KEY || '';
 const PAKASIR_METHOD = process.env.PAKASIR_METHOD || 'qris';
+const INTERNAL_API_KEY = process.env.INTERNAL_API_KEY || '';
+const RESULTS_TTL_HOURS = Number(process.env.RESULTS_TTL_HOURS || 24);
+const RESULT_MAX_BYTES = Number(process.env.RESULT_MAX_BYTES || 10 * 1024 * 1024);
+const CORS_ORIGINS = String(process.env.CORS_ORIGINS || '').split(',').map((item) => item.trim()).filter(Boolean);
 const PORT = Number(process.env.PORT || 3000);
 const paymentSessions = new Map();
 
 app.set('trust proxy', 1);
 app.use((req, res, next) => {
-  res.setHeader('Access-Control-Allow-Origin', '*');
+  const requestOrigin = req.headers.origin;
+  if (!requestOrigin) {
+    res.setHeader('Access-Control-Allow-Origin', '*');
+  } else if (CORS_ORIGINS.length === 0 || CORS_ORIGINS.includes(requestOrigin)) {
+    res.setHeader('Access-Control-Allow-Origin', requestOrigin);
+    res.setHeader('Vary', 'Origin');
+  }
   res.setHeader('Access-Control-Allow-Methods', 'GET,POST,PUT,PATCH,DELETE,OPTIONS');
   res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization');
   if (req.method === 'OPTIONS') {
@@ -30,9 +42,36 @@ app.use((req, res, next) => {
 
   next();
 });
+
+const apiLimiter = rateLimit({
+  windowMs: 60 * 1000,
+  max: Number(process.env.API_RATE_LIMIT_PER_MIN || 120),
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: { error: 'Too many requests, slow down.' },
+});
+
 app.use(express.json({ limit: '20mb' }));
 app.use(express.urlencoded({ extended: true, limit: '20mb' }));
 app.use(express.static(ROOT_DIR));
+app.use('/api', apiLimiter);
+
+function requireInternalApiKey(req, res, next) {
+  if (!INTERNAL_API_KEY) {
+    return next();
+  }
+
+  const authHeader = req.headers.authorization || '';
+  const bearer = authHeader.startsWith('Bearer ') ? authHeader.slice(7).trim() : '';
+  const headerKey = req.headers['x-internal-api-key'];
+  const candidate = String(headerKey || bearer || '').trim();
+
+  if (!candidate || candidate !== INTERNAL_API_KEY) {
+    return res.status(401).json({ error: 'Unauthorized' });
+  }
+
+  return next();
+}
 
 function firstDefined(...values) {
   for (const value of values) {
@@ -63,6 +102,44 @@ function getBaseUrl(req) {
 
 async function ensureDirectories() {
   await fsp.mkdir(RESULTS_DIR, { recursive: true });
+  await fsp.mkdir(DATA_DIR, { recursive: true });
+}
+
+async function persistSessionsToDisk() {
+  const payload = Object.fromEntries(paymentSessions.entries());
+  await writeJson(SESSIONS_PATH, payload);
+}
+
+async function loadSessionsFromDisk() {
+  const stored = await readJsonIfExists(SESSIONS_PATH);
+  if (!stored || typeof stored !== 'object') return;
+
+  for (const [orderId, value] of Object.entries(stored)) {
+    if (!orderId || !value || typeof value !== 'object') continue;
+    paymentSessions.set(orderId, value);
+  }
+}
+
+async function cleanupExpiredResults() {
+  const ttlMs = Math.max(1, RESULTS_TTL_HOURS) * 60 * 60 * 1000;
+  const now = Date.now();
+  const entries = await fsp.readdir(RESULTS_DIR, { withFileTypes: true });
+
+  for (const entry of entries) {
+    if (!entry.isFile() || !entry.name.endsWith('.json')) continue;
+    const metaPath = path.join(RESULTS_DIR, entry.name);
+    const record = await readJsonIfExists(metaPath);
+    if (!record?.createdAt || !record?.fileName) continue;
+
+    const createdAt = Date.parse(record.createdAt);
+    if (!Number.isFinite(createdAt) || now - createdAt < ttlMs) continue;
+
+    const imagePath = path.join(RESULTS_DIR, record.fileName);
+    await Promise.allSettled([
+      fsp.unlink(metaPath),
+      fsp.unlink(imagePath),
+    ]);
+  }
 }
 
 function parseDataUrl(imageDataUrl) {
@@ -569,7 +646,7 @@ app.get('/health', (_req, res) => {
   res.json({ ok: true });
 });
 
-app.post('/api/qris/create', async (req, res) => {
+app.post('/api/qris/create', requireInternalApiKey, async (req, res) => {
   try {
     const orderId = String(req.body.orderId || '').trim() || `KP-${crypto.randomUUID().replace(/-/g, '').slice(0, 12)}`;
     const amount = normalizeAmount(req.body.amount);
@@ -594,6 +671,7 @@ app.post('/api/qris/create', async (req, res) => {
     };
 
     paymentSessions.set(orderId, session);
+    await persistSessionsToDisk();
 
     res.json({
       orderId,
@@ -615,7 +693,7 @@ app.post('/api/qris/create', async (req, res) => {
   }
 });
 
-app.get('/api/qris/:orderId/status', async (req, res) => {
+app.get('/api/qris/:orderId/status', requireInternalApiKey, async (req, res) => {
   try {
     const orderId = String(req.params.orderId || '').trim();
     const session = paymentSessions.get(orderId);
@@ -631,6 +709,7 @@ app.get('/api/qris/:orderId/status', async (req, res) => {
     };
 
     paymentSessions.set(orderId, mergedSession);
+    await persistSessionsToDisk();
 
     res.json({
       orderId,
@@ -649,7 +728,7 @@ app.get('/api/qris/:orderId/status', async (req, res) => {
   }
 });
 
-app.post('/api/qris/:orderId/cancel', async (req, res) => {
+app.post('/api/qris/:orderId/cancel', requireInternalApiKey, async (req, res) => {
   try {
     const orderId = String(req.params.orderId || '').trim();
     const session = paymentSessions.get(orderId);
@@ -662,6 +741,7 @@ app.post('/api/qris/:orderId/cancel', async (req, res) => {
       cancelledAt: new Date().toISOString(),
       raw: payment.raw,
     });
+    await persistSessionsToDisk();
 
     res.json({
       orderId,
@@ -677,11 +757,17 @@ app.post('/api/qris/:orderId/cancel', async (req, res) => {
   }
 });
 
-app.post('/api/results', async (req, res) => {
+app.post('/api/results', requireInternalApiKey, async (req, res) => {
   try {
     const { imageDataUrl, orderId, packageId, customerName } = req.body || {};
     if (!imageDataUrl) {
       return res.status(400).json({ error: 'imageDataUrl is required' });
+    }
+
+    const base64Payload = String(imageDataUrl).split(',')[1] || '';
+    const decodedSize = Buffer.byteLength(base64Payload, 'base64');
+    if (decodedSize > RESULT_MAX_BYTES) {
+      return res.status(413).json({ error: `Image too large. Max ${Math.round(RESULT_MAX_BYTES / (1024 * 1024))}MB` });
     }
 
     const record = await saveResultShare({
@@ -766,6 +852,13 @@ app.get('/share/:token/download', async (req, res) => {
 
 async function start() {
   await ensureDirectories();
+  await loadSessionsFromDisk();
+  await cleanupExpiredResults();
+
+  setInterval(() => {
+    cleanupExpiredResults().catch((error) => console.error('cleanupExpiredResults error:', error.message));
+  }, 60 * 60 * 1000).unref();
+
   app.listen(PORT, () => {
     console.log(`Kothak Photo server running on http://localhost:${PORT}`);
   });

@@ -43,31 +43,14 @@
   const $ = (sel, ctx = document) => ctx.querySelector(sel);
   const $$ = (sel, ctx = document) => [...ctx.querySelectorAll(sel)];
 
-  function normalizeApiBaseUrl(value) {
-    return String(value || '').trim().replace(/\/$/, '');
-  }
+  const KothakConfig = window.KothakConfig || {};
+  const API_BASE_CANDIDATES = typeof KothakConfig.buildApiBaseCandidates === 'function'
+    ? KothakConfig.buildApiBaseCandidates()
+    : ['http://localhost:3000', 'http://127.0.0.1:3000'];
+  const INTERNAL_API_KEY = typeof KothakConfig.getInternalApiKey === 'function'
+    ? KothakConfig.getInternalApiKey()
+    : '';
 
-  function buildApiBaseCandidates() {
-    const candidates = [];
-    const explicitBase = document.querySelector('meta[name="kothak-api-base"]')?.content
-      || window.__KOTHAK_API_BASE_URL__
-      || window.KOTHAK_API_BASE_URL;
-
-    if (explicitBase) {
-      candidates.push(explicitBase);
-    }
-
-    if (window.location.origin && window.location.origin !== 'null') {
-      candidates.push(window.location.origin);
-    }
-
-    candidates.push('http://localhost:3000');
-    candidates.push('http://127.0.0.1:3000');
-
-    return [...new Set(candidates.map(normalizeApiBaseUrl).filter(Boolean))];
-  }
-
-  const API_BASE_CANDIDATES = buildApiBaseCandidates();
 
   async function apiFetchJson(path, options = {}) {
     let lastError = null;
@@ -78,6 +61,7 @@
           ...options,
           headers: {
             Accept: 'application/json',
+            ...(INTERNAL_API_KEY ? { 'x-internal-api-key': INTERNAL_API_KEY } : {}),
             ...(options.headers || {}),
           },
         });
@@ -430,14 +414,14 @@
 
   // ── Data & Voucher ──
   const validateFormRules = {
-    name: (value) => {
+    name: window.KothakValidators?.name || ((value) => {
       value = value.trim();
       if (!value) return 'Nama tidak boleh kosong';
       if (value.length < 3) return 'Nama minimal 3 karakter';
       if (!/^[a-zA-Z\s'-\.]+$/.test(value)) return 'Nama hanya boleh mengandung huruf';
       return null;
-    },
-    phone: (value) => {
+    }),
+    phone: window.KothakValidators?.phone || ((value) => {
       value = value.trim().replace(/\s+/g, '');
       if (!value) return 'Nomor WhatsApp tidak boleh kosong';
       // Accept: 08xxx, +628xxx, 628xxx formats
@@ -445,7 +429,7 @@
         return 'Format nomor WhatsApp tidak valid (0812xxx)';
       }
       return null;
-    },
+    }),
   };
 
   function validateField(fieldName, value) {

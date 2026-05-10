@@ -12,7 +12,7 @@ Kios photobooth berbasis HTML, CSS, dan JavaScript dengan backend Express untuk 
 
 ## Menjalankan
 
-1. Copy `.env.example` ke `.env` lalu isi `PAKASIR_PROJECT` dan `PAKASIR_API_KEY`.
+1. Copy `.env.example` ke `.env` lalu isi minimal `PAKASIR_PROJECT`, `PAKASIR_API_KEY`, dan `INTERNAL_API_KEY`.
 2. Install dependency Node.
 3. Jalankan server dengan `npm start`.
 
@@ -32,6 +32,16 @@ Lalu buka `http://localhost:3000`.
 - `POST /api/qris/:orderId/cancel` untuk membatalkan transaksi.
 - `POST /api/results` untuk menyimpan hasil foto dan membuat tautan share.
 - `GET /share/:token` untuk halaman unduh hasil.
+
+## Security & Operasional
+
+- `CORS_ORIGINS` untuk whitelist origin frontend (pisahkan dengan koma).
+- `INTERNAL_API_KEY` untuk proteksi endpoint `/api/*`.
+  - Kirim header `x-internal-api-key: <INTERNAL_API_KEY>` dari frontend/backend caller.
+- Rate limit API via `API_RATE_LIMIT_PER_MIN` (default 120 req/menit/IP).
+- Batas ukuran upload hasil foto via `RESULT_MAX_BYTES` (default 10MB).
+- Retensi file hasil via `RESULTS_TTL_HOURS` (default 24 jam), auto-cleanup tiap 1 jam.
+- Session pembayaran disimpan persisten di `data/payment-sessions.json` agar tidak hilang saat restart.
 
 ## Catatan
 
