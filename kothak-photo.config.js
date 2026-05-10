@@ -14,9 +14,6 @@
     if (explicitBase) candidates.push(explicitBase);
     if (window.location.origin && window.location.origin !== 'null') candidates.push(window.location.origin);
 
-    candidates.push('http://localhost:3000');
-    candidates.push('http://127.0.0.1:3000');
-
     return [...new Set(candidates.map(normalizeApiBaseUrl).filter(Boolean))];
   }
 
