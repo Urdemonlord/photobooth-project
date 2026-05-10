@@ -70,4 +70,5 @@ Lalu buka `http://localhost:3000`.
 - Operator juga bisa ubah rules langsung dari UI tombol **Atur Paket** (pojok kanan atas) dengan mode checklist (tinggal centang frame/filter). Hasilnya tersimpan lokal di browser kiosk (`localStorage`) dan bisa di-reset ke default.
 - Ada tombol preset cepat: **Preset Reguler / Premium / Group** untuk apply rule standar ke semua paket dalam 1 klik sebelum disimpan.
 - Pengaturan paket bisa dikunci PIN operator via `window.KOTHAK_OPERATOR_PIN` / `window.__KOTHAK_OPERATOR_PIN__` / meta `kothak-operator-pin` (valid per sesi tab/browser).
+- PIN operator juga bisa diubah langsung dari panel **Atur Paket** (input PIN baru + konfirmasi), tersimpan lokal di browser kiosk.
 - Unduhan hasil foto dibuat dari canvas asli lalu bisa dibagikan lewat tautan share.

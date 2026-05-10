@@ -2115,6 +2115,38 @@ h1, h2, h3, h4 {
   font-size: 0.82rem;
 }
 
+.package-settings-pin {
+  margin-top: 0.9rem;
+  border: 1px solid rgba(255,255,255,0.1);
+  border-radius: 10px;
+  padding: 0.7rem;
+}
+
+.package-settings-pin h4 {
+  margin-bottom: 0.5rem;
+}
+
+.package-settings-pin-row {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.5rem;
+}
+
+.package-settings-pin-row input {
+  min-height: 38px;
+  border-radius: 8px;
+  border: 1px solid rgba(255,255,255,0.14);
+  background: rgba(7, 19, 37, 0.9);
+  color: var(--on-surface);
+  padding: 0.4rem 0.55rem;
+}
+
+.package-settings-pin-actions {
+  display: flex;
+  gap: 0.5rem;
+  margin-top: 0.6rem;
+}
+
 .package-settings-actions {
   display: flex;
   justify-content: flex-end;
@@ -2132,6 +2164,10 @@ h1, h2, h3, h4 {
   }
 
   .package-settings-presets {
+    grid-template-columns: 1fr;
+  }
+
+  .package-settings-pin-row {
     grid-template-columns: 1fr;
   }
 }

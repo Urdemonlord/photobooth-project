@@ -85,10 +85,19 @@
   const INTERNAL_API_KEY = typeof KothakConfig.getInternalApiKey === 'function'
     ? KothakConfig.getInternalApiKey()
     : '';
-  const OPERATOR_PIN = typeof KothakConfig.getOperatorPin === 'function'
+  const OPERATOR_PIN_DEFAULT = typeof KothakConfig.getOperatorPin === 'function'
     ? KothakConfig.getOperatorPin()
     : '';
+  const OPERATOR_PIN_STORAGE_KEY = 'kothak-operator-pin';
   const OPERATOR_AUTH_SESSION_KEY = 'kothak-operator-auth-ok';
+
+  function loadOperatorPin() {
+    const fromStorage = window.localStorage?.getItem(OPERATOR_PIN_STORAGE_KEY);
+    if (fromStorage != null && String(fromStorage).trim()) return String(fromStorage).trim();
+    return String(OPERATOR_PIN_DEFAULT || '').trim();
+  }
+
+  let operatorPin = loadOperatorPin();
 
 
   async function apiFetchJson(path, options = {}) {
@@ -298,17 +307,17 @@
   }
 
   function isOperatorAuthorized() {
-    if (!OPERATOR_PIN) return true;
+    if (!operatorPin) return true;
     return window.sessionStorage?.getItem(OPERATOR_AUTH_SESSION_KEY) === '1';
   }
 
   function requestOperatorAccess() {
-    if (!OPERATOR_PIN) return true;
+    if (!operatorPin) return true;
     if (isOperatorAuthorized()) return true;
 
     const input = window.prompt('Masukkan PIN operator untuk buka Pengaturan Paket:');
     if (!input) return false;
-    if (String(input).trim() !== OPERATOR_PIN) {
+    if (String(input).trim() !== operatorPin) {
       showToast('PIN operator salah');
       return false;
     }
@@ -325,6 +334,10 @@
     const btnReset = $('#btn-package-settings-reset');
     const listEl = $('#package-settings-list');
     const presetsEl = $('#package-settings-presets');
+    const inputPinNew = $('#input-operator-pin-new');
+    const inputPinConfirm = $('#input-operator-pin-confirm');
+    const btnPinSave = $('#btn-operator-pin-save');
+    const btnPinClear = $('#btn-operator-pin-clear');
     if (!btnOpen || !modal || !btnClose || !btnSave || !btnReset || !listEl) return;
 
     const frameOptions = $$('.frame-card').map((el) => el.dataset.frame).filter(Boolean);
@@ -387,6 +400,35 @@
         if (!presetKey) return;
         applyPreset(presetKey);
       });
+    });
+
+    btnPinSave?.addEventListener('click', () => {
+      const newPin = String(inputPinNew?.value || '').trim();
+      const confirmPin = String(inputPinConfirm?.value || '').trim();
+      if (!/^\d{4,}$/.test(newPin)) {
+        showToast('PIN minimal 4 digit angka');
+        return;
+      }
+      if (newPin !== confirmPin) {
+        showToast('Konfirmasi PIN tidak sama');
+        return;
+      }
+
+      operatorPin = newPin;
+      window.localStorage?.setItem(OPERATOR_PIN_STORAGE_KEY, newPin);
+      window.sessionStorage?.setItem(OPERATOR_AUTH_SESSION_KEY, '1');
+      if (inputPinNew) inputPinNew.value = '';
+      if (inputPinConfirm) inputPinConfirm.value = '';
+      showToast('PIN operator berhasil disimpan');
+    });
+
+    btnPinClear?.addEventListener('click', () => {
+      operatorPin = '';
+      window.localStorage?.removeItem(OPERATOR_PIN_STORAGE_KEY);
+      window.sessionStorage?.setItem(OPERATOR_AUTH_SESSION_KEY, '1');
+      if (inputPinNew) inputPinNew.value = '';
+      if (inputPinConfirm) inputPinConfirm.value = '';
+      showToast('PIN operator dihapus');
     });
 
     btnSave.addEventListener('click', () => {
