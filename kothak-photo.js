@@ -9,7 +9,7 @@
   const KothakConfig = window.KothakConfig || {};
 
   // ── State ──
-  const PACKAGE_RULES = typeof KothakConfig.getPackageRules === 'function'
+  let packageRules = typeof KothakConfig.getPackageRules === 'function'
     ? KothakConfig.getPackageRules()
     : {
       reguler: {
@@ -31,6 +31,10 @@
         printCopies: 2,
       },
     };
+
+  function cloneObject(value) {
+    return JSON.parse(JSON.stringify(value || {}));
+  }
 
   const state = {
     currentScreen: 'screen-landing',
@@ -130,7 +134,7 @@
   }
 
   function getPackageRule() {
-    return PACKAGE_RULES[state.selectedPackage] || PACKAGE_RULES.premium;
+    return packageRules[state.selectedPackage] || packageRules.premium;
   }
 
   function formatSeconds(totalSeconds) {
@@ -239,6 +243,115 @@
       chip.style.opacity = allowed ? '' : '0.45';
       chip.style.pointerEvents = allowed ? '' : 'none';
       chip.classList.toggle('active', filterKey === state.selectedFilter);
+    });
+  }
+
+  function buildPackageEditorCard(pkgKey, rule, frameOptions, filterOptions) {
+    const frameValue = rule.allowedFrames === 'all' ? 'all' : (rule.allowedFrames || []).join(',');
+    const filterValue = (rule.allowedFilters || []).join(',');
+    return `
+      <div class="package-editor-card" data-package="${pkgKey}">
+        <h4 style="margin-bottom:8px; text-transform:capitalize;">Paket ${pkgKey}</h4>
+        <div class="package-editor-grid">
+          <div class="package-editor-field">
+            <label>Waktu Foto (detik)</label>
+            <input type="number" min="15" step="5" data-field="captureTimeSeconds" value="${Number(rule.captureTimeSeconds) || 90}" />
+          </div>
+          <div class="package-editor-field">
+            <label>Jumlah Print</label>
+            <input type="number" min="1" step="1" data-field="printCopies" value="${Number(rule.printCopies) || 1}" />
+          </div>
+          <div class="package-editor-field">
+            <label>Frame (koma, atau ketik all)</label>
+            <input type="text" data-field="allowedFrames" value="${frameValue}" placeholder="Contoh: birthday,friends" />
+            <small>Opsi: ${frameOptions.join(', ')}</small>
+          </div>
+          <div class="package-editor-field">
+            <label>Filter (koma)</label>
+            <input type="text" data-field="allowedFilters" value="${filterValue}" placeholder="Contoh: original,bw,warm" />
+            <small>Opsi: ${filterOptions.join(', ')}</small>
+          </div>
+        </div>
+      </div>
+    `;
+  }
+
+  function initPackageSettingsPanel() {
+    const btnOpen = $('#btn-package-settings');
+    const modal = $('#package-settings-modal');
+    const btnClose = $('#btn-package-settings-close');
+    const btnSave = $('#btn-package-settings-save');
+    const btnReset = $('#btn-package-settings-reset');
+    const listEl = $('#package-settings-list');
+    if (!btnOpen || !modal || !btnClose || !btnSave || !btnReset || !listEl) return;
+
+    const frameOptions = $$('.frame-card').map((el) => el.dataset.frame).filter(Boolean);
+    const filterOptions = $$('.filter-chip').map((el) => el.dataset.filter).filter(Boolean);
+
+    const renderEditor = () => {
+      const sourceRules = cloneObject(packageRules);
+      listEl.innerHTML = Object.entries(sourceRules)
+        .map(([pkgKey, rule]) => buildPackageEditorCard(pkgKey, rule || {}, frameOptions, filterOptions))
+        .join('');
+    };
+
+    const openModal = () => {
+      renderEditor();
+      modal.classList.remove('hidden');
+      modal.setAttribute('aria-hidden', 'false');
+    };
+
+    const closeModal = () => {
+      modal.classList.add('hidden');
+      modal.setAttribute('aria-hidden', 'true');
+    };
+
+    btnOpen.addEventListener('click', openModal);
+    btnClose.addEventListener('click', closeModal);
+    modal.addEventListener('click', (event) => {
+      if (event.target === modal) closeModal();
+    });
+
+    btnSave.addEventListener('click', () => {
+      const nextRules = {};
+      $$('.package-editor-card', listEl).forEach((card) => {
+        const pkgKey = card.dataset.package;
+        const captureTime = Number($('[data-field="captureTimeSeconds"]', card)?.value || 90);
+        const printCopies = Number($('[data-field="printCopies"]', card)?.value || 1);
+        const frameRaw = String($('[data-field="allowedFrames"]', card)?.value || '').trim();
+        const filterRaw = String($('[data-field="allowedFilters"]', card)?.value || '').trim();
+
+        nextRules[pkgKey] = {
+          captureTimeSeconds: Math.max(15, captureTime || 90),
+          printCopies: Math.max(1, printCopies || 1),
+          allowedFrames: frameRaw.toLowerCase() === 'all'
+            ? 'all'
+            : frameRaw.split(',').map((v) => v.trim()).filter(Boolean),
+          allowedFilters: filterRaw.split(',').map((v) => v.trim()).filter(Boolean),
+        };
+      });
+
+      if (typeof KothakConfig.setPackageRulesOverride === 'function') {
+        KothakConfig.setPackageRulesOverride(nextRules);
+      }
+      packageRules = nextRules;
+      applyPackageFeatureVisibility();
+      updatePriceSummary();
+      showToast('Pengaturan paket disimpan');
+      closeModal();
+    });
+
+    btnReset.addEventListener('click', () => {
+      if (typeof KothakConfig.clearPackageRulesOverride === 'function') {
+        KothakConfig.clearPackageRulesOverride();
+      }
+      packageRules = typeof KothakConfig.getPackageRules === 'function'
+        ? KothakConfig.getPackageRules()
+        : cloneObject(KothakConfig.DEFAULT_PACKAGE_RULES || {});
+      applyPackageFeatureVisibility();
+      updatePriceSummary();
+      showToast('Paket kembali ke default');
+      closeModal();
     });
   }
 
@@ -1759,6 +1872,7 @@
     initData();
     initFrame();
     initFilter();
+    initPackageSettingsPanel();
     applyPackageFeatureVisibility();
     updatePriceSummary();
   }

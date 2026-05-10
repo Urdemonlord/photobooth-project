@@ -532,6 +532,30 @@
       </div>
     </section>
 
+    <button id="btn-package-settings" class="btn-package-settings" type="button" aria-label="Atur paket">
+      <span class="material-symbols-rounded">tune</span>
+      Atur Paket
+    </button>
+
+    <div id="package-settings-modal" class="package-settings-modal hidden" aria-hidden="true">
+      <div class="package-settings-panel glass-card">
+        <div class="package-settings-header">
+          <h3>Pengaturan Paket</h3>
+          <button id="btn-package-settings-close" class="btn-back" type="button" aria-label="Tutup">
+            <span class="material-symbols-rounded">close</span>
+          </button>
+        </div>
+        <p class="package-settings-sub">Klik-klik aja lalu simpan. Tersimpan lokal di device kiosk ini.</p>
+
+        <div id="package-settings-list" class="package-settings-list"></div>
+
+        <div class="package-settings-actions">
+          <button id="btn-package-settings-reset" class="btn-outline" type="button">Reset Default</button>
+          <button id="btn-package-settings-save" class="btn-primary" type="button">Simpan</button>
+        </div>
+      </div>
+    </div>
+
     <!-- Hidden canvas for photo processing -->
     <canvas id="hidden-canvas" class="hidden-canvas"></canvas>
   </div>

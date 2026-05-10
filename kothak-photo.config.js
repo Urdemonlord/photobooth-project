@@ -54,12 +54,9 @@
     return JSON.parse(JSON.stringify(value));
   }
 
-  function readPackageRulesOverride() {
-    const raw = document.querySelector('meta[name="kothak-package-rules"]')?.content
-      || window.__KOTHAK_PACKAGE_RULES__
-      || window.KOTHAK_PACKAGE_RULES
-      || null;
+  const PACKAGE_RULES_STORAGE_KEY = 'kothak-package-rules';
 
+  function parseJsonObject(raw) {
     if (!raw) return null;
     try {
       if (typeof raw === 'string') return JSON.parse(raw);
@@ -68,6 +65,31 @@
     } catch {
       return null;
     }
+  }
+
+  function readPackageRulesOverride() {
+    const storageRaw = window.localStorage?.getItem(PACKAGE_RULES_STORAGE_KEY);
+    const fromStorage = parseJsonObject(storageRaw);
+    if (fromStorage && typeof fromStorage === 'object') return fromStorage;
+
+    const raw = document.querySelector('meta[name="kothak-package-rules"]')?.content
+      || window.__KOTHAK_PACKAGE_RULES__
+      || window.KOTHAK_PACKAGE_RULES
+      || null;
+
+    return parseJsonObject(raw);
+  }
+
+  function setPackageRulesOverride(override) {
+    if (!override || typeof override !== 'object') {
+      window.localStorage?.removeItem(PACKAGE_RULES_STORAGE_KEY);
+      return;
+    }
+    window.localStorage?.setItem(PACKAGE_RULES_STORAGE_KEY, JSON.stringify(override));
+  }
+
+  function clearPackageRulesOverride() {
+    window.localStorage?.removeItem(PACKAGE_RULES_STORAGE_KEY);
   }
 
   function getPackageRules() {
@@ -93,5 +115,8 @@
     buildApiBaseCandidates,
     getInternalApiKey,
     getPackageRules,
+    setPackageRulesOverride,
+    clearPackageRulesOverride,
+    DEFAULT_PACKAGE_RULES: clone(DEFAULT_PACKAGE_RULES),
   };
 })();

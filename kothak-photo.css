@@ -1983,6 +1983,113 @@ h1, h2, h3, h4 {
   }
 }
 
+.btn-package-settings {
+  position: absolute;
+  top: 12px;
+  right: 12px;
+  z-index: 20;
+  border: 1px solid rgba(255, 219, 60, 0.35);
+  background: rgba(7, 19, 37, 0.85);
+  color: var(--gold);
+  border-radius: 999px;
+  min-height: 40px;
+  padding: 0.5rem 0.85rem;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.package-settings-modal {
+  position: absolute;
+  inset: 0;
+  z-index: 30;
+  background: rgba(2, 8, 18, 0.78);
+  backdrop-filter: blur(4px);
+  padding: 1rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.package-settings-modal.hidden {
+  display: none;
+}
+
+.package-settings-panel {
+  width: min(900px, 100%);
+  max-height: 90dvh;
+  overflow: auto;
+  border: 1px solid rgba(255,255,255,0.08);
+  padding: 1rem;
+}
+
+.package-settings-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.package-settings-sub {
+  color: var(--on-surface-variant);
+  font-size: 0.85rem;
+  margin: 0.6rem 0 0.9rem;
+}
+
+.package-settings-list {
+  display: grid;
+  gap: 0.8rem;
+}
+
+.package-editor-card {
+  border: 1px solid rgba(255,255,255,0.1);
+  border-radius: 12px;
+  padding: 0.8rem;
+  background: rgba(16,28,46,0.65);
+}
+
+.package-editor-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.6rem;
+}
+
+.package-editor-field {
+  display: flex;
+  flex-direction: column;
+  gap: 0.3rem;
+}
+
+.package-editor-field label {
+  font-size: 0.78rem;
+  color: var(--on-surface-variant);
+}
+
+.package-editor-field input,
+.package-editor-field select {
+  min-height: 38px;
+  border-radius: 8px;
+  border: 1px solid rgba(255,255,255,0.14);
+  background: rgba(7, 19, 37, 0.9);
+  color: var(--on-surface);
+  padding: 0.4rem 0.55rem;
+}
+
+.package-settings-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 0.6rem;
+  margin-top: 0.9rem;
+}
+
+@media (max-width: 640px) {
+  .package-editor-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
 @media print {
   html, body {
     height: auto;
