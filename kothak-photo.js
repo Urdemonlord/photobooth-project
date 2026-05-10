@@ -76,6 +76,7 @@
     printPollTimer: null,
     photoSessionTimer: null,
     photoSessionSeconds: 0,
+    operatorQueueSessionId: '',
   };
 
   let defaultPaymentQrMarkup = '';
@@ -106,6 +107,7 @@
   let operatorPin = loadOperatorPin();
 
   const PRINT_SIZE_STORAGE_KEY = 'kothak-print-size';
+  const OPERATOR_QUEUE_STORAGE_KEY = 'kothak-operator-queue';
   const PRINT_SIZE_PRESETS = {
     '2x6': { widthMm: 50.8, heightMm: 152.4 },
     '4x6': { widthMm: 101.6, heightMm: 152.4 },
@@ -372,6 +374,8 @@
     const inputPrintWidth = $('#input-print-width-mm');
     const inputPrintHeight = $('#input-print-height-mm');
     const btnPrintSizeSave = $('#btn-print-size-save');
+    const queueListEl = $('#operator-queue-list');
+    const btnQueueClear = $('#btn-queue-clear');
     if (!btnOpen || !modal || !btnClose || !btnSave || !btnReset || !listEl) return;
 
     const frameOptions = $$('.frame-card').map((el) => el.dataset.frame).filter(Boolean);
@@ -413,6 +417,7 @@
     const openModal = () => {
       if (!requestOperatorAccess()) return;
       renderEditor();
+      renderOperatorQueueList(queueListEl);
 
       try {
         const raw = window.localStorage?.getItem(PRINT_SIZE_STORAGE_KEY);
@@ -470,6 +475,12 @@
       applyPrintSize(widthMm, heightMm);
       window.localStorage?.setItem(PRINT_SIZE_STORAGE_KEY, JSON.stringify({ widthMm, heightMm }));
       showToast(`Ukuran print disimpan: ${widthMm} x ${heightMm} mm`);
+    });
+
+    btnQueueClear?.addEventListener('click', () => {
+      writeOperatorQueue([]);
+      renderOperatorQueueList(queueListEl);
+      showToast('Log antrian dibersihkan');
     });
 
     btnPinSave?.addEventListener('click', () => {
@@ -664,6 +675,87 @@
 
   function formatRp(num) {
     return `Rp ${num.toLocaleString('id-ID')}`;
+  }
+
+  function getPackageLabel(pkgKey) {
+    const labels = {
+      single: 'Single Shot',
+      bestie: 'Bestie Session',
+      couple: 'Couple Session',
+      signature: 'Signature Session',
+    };
+    return labels[pkgKey] || pkgKey;
+  }
+
+  function readOperatorQueue() {
+    try {
+      const raw = window.localStorage?.getItem(OPERATOR_QUEUE_STORAGE_KEY);
+      const parsed = raw ? JSON.parse(raw) : [];
+      return Array.isArray(parsed) ? parsed : [];
+    } catch {
+      return [];
+    }
+  }
+
+  function writeOperatorQueue(items) {
+    try {
+      window.localStorage?.setItem(OPERATOR_QUEUE_STORAGE_KEY, JSON.stringify(items || []));
+    } catch {}
+  }
+
+  function upsertOperatorQueueEntry() {
+    const now = new Date();
+    const queue = readOperatorQueue();
+    const selectedPackage = state.selectedPackage;
+    const entry = {
+      id: state.operatorQueueSessionId || `Q-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 6).toUpperCase()}`,
+      packageKey: selectedPackage,
+      packageLabel: getPackageLabel(selectedPackage),
+      amount: Number(state.packagePrices[selectedPackage] || 0),
+      status: 'in-session',
+      at: now.toISOString(),
+      atLabel: now.toLocaleString('id-ID', { hour12: false }),
+    };
+
+    state.operatorQueueSessionId = entry.id;
+    const idx = queue.findIndex((item) => item?.id === entry.id);
+    if (idx >= 0) queue[idx] = entry;
+    else queue.unshift(entry);
+
+    writeOperatorQueue(queue.slice(0, 100));
+    return entry;
+  }
+
+  function markOperatorQueueDone(entryId) {
+    if (!entryId) return;
+    const queue = readOperatorQueue();
+    const idx = queue.findIndex((item) => item?.id === entryId);
+    if (idx < 0) return;
+    queue[idx] = { ...queue[idx], status: 'done' };
+    writeOperatorQueue(queue);
+  }
+
+  function renderOperatorQueueList(containerEl) {
+    if (!containerEl) return;
+    const queue = readOperatorQueue();
+    if (!queue.length) {
+      containerEl.innerHTML = '<p class="operator-queue-empty">Belum ada data paket hari ini.</p>';
+      return;
+    }
+
+    containerEl.innerHTML = queue
+      .slice(0, 20)
+      .map((item) => {
+        const statusLabel = item.status === 'done' ? 'DONE' : 'IN-SESSION';
+        return `
+          <div class="operator-queue-item">
+            <strong>${item.packageLabel || item.packageKey || '-'}</strong>
+            <strong>${formatRp(Number(item.amount || 0))}</strong>
+            <div class="meta">${item.atLabel || '-'} • ${statusLabel} • ${item.id || '-'}</div>
+          </div>
+        `;
+      })
+      .join('');
   }
 
   function getCurrentAmount() {
@@ -1984,6 +2076,7 @@
     clearInterval(state.returnTimer);
     clearInterval(state.printPollTimer);
     window.onafterprint = null;
+    markOperatorQueueDone(state.operatorQueueSessionId);
 
     // Reset state
     state.photos = [];
@@ -2009,6 +2102,7 @@
     state.printJobId = '';
     state.printJobStatus = '';
     state.photoSessionSeconds = 0;
+    state.operatorQueueSessionId = '';
     stopPhotoSessionTimer();
 
     // Reset UI
@@ -2057,7 +2151,7 @@
     $$('.btn-next').forEach(btn => {
       btn.addEventListener('click', () => {
         const target = btn.dataset.goto;
-        
+
         // Validate form if going to payment
         if (target === 'screen-payment') {
           if (!validateFormData()) {
@@ -2065,7 +2159,11 @@
             return;
           }
         }
-        
+
+        if (state.currentScreen === 'screen-package' && target === 'screen-frame') {
+          upsertOperatorQueueEntry();
+        }
+
         if (target) goToScreen(target);
       });
     });

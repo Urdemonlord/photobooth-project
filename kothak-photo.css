@@ -2217,6 +2217,56 @@ h1, h2, h3, h4 {
   margin-top: 0.6rem;
 }
 
+.package-settings-queue {
+  margin-top: 0.9rem;
+  border: 1px solid rgba(255,255,255,0.12);
+  border-radius: 10px;
+  padding: 0.7rem;
+  background: rgba(0,0,0,0.18);
+}
+
+.package-settings-queue-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.6rem;
+  margin-bottom: 0.55rem;
+}
+
+.package-settings-queue-head h4 {
+  margin: 0;
+  font-size: 0.95rem;
+}
+
+.operator-queue-list {
+  max-height: 180px;
+  overflow: auto;
+  display: grid;
+  gap: 0.45rem;
+}
+
+.operator-queue-item {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 0.35rem;
+  border: 1px solid rgba(255,255,255,0.12);
+  border-radius: 9px;
+  padding: 0.5rem 0.6rem;
+  background: rgba(255,255,255,0.05);
+  font-size: 0.85rem;
+}
+
+.operator-queue-item .meta {
+  grid-column: 1 / -1;
+  color: var(--on-surface-variant);
+  font-size: 0.76rem;
+}
+
+.operator-queue-empty {
+  color: var(--on-surface-variant);
+  font-size: 0.82rem;
+}
+
 .package-settings-actions {
   display: flex;
   justify-content: flex-end;
