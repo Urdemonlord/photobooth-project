@@ -33,7 +33,11 @@
     resultDownloadUrl: '',
     resultShareUrl: '',
     resultShareQrDataUrl: '',
+    resultToken: '',
     printRequested: false,
+    printJobId: '',
+    printJobStatus: '',
+    printPollTimer: null,
   };
 
   let defaultPaymentQrMarkup = '';
@@ -157,6 +161,7 @@
       case 'screen-camera': stopCamera(); break;
       case 'screen-result':
         clearInterval(state.returnTimer);
+        clearInterval(state.printPollTimer);
         window.onafterprint = null;
         break;
     }
@@ -1265,6 +1270,90 @@
 
   }
 
+  function updatePrintUi(status, message) {
+    const printStatus = $('#print-status-text');
+    const printIcon = $('.print-icon');
+    const printBar = $('#print-bar');
+
+    if (printStatus && message) printStatus.textContent = message;
+
+    if (!printIcon || !printBar) return;
+
+    if (status === 'queued') {
+      printIcon.classList.add('spinning');
+      printIcon.textContent = 'sync';
+      printIcon.style.color = '';
+      printBar.style.width = '30%';
+      return;
+    }
+
+    if (status === 'printing') {
+      printIcon.classList.add('spinning');
+      printIcon.textContent = 'print';
+      printIcon.style.color = '';
+      printBar.style.width = '70%';
+      return;
+    }
+
+    if (status === 'done') {
+      printIcon.classList.remove('spinning');
+      printIcon.textContent = 'check_circle';
+      printIcon.style.color = '#4ADE80';
+      printBar.style.width = '100%';
+      return;
+    }
+
+    if (status === 'failed') {
+      printIcon.classList.remove('spinning');
+      printIcon.textContent = 'error';
+      printIcon.style.color = '#FF6B6B';
+      printBar.style.width = '100%';
+    }
+  }
+
+  async function requestServerPrint() {
+    if (!state.resultToken) {
+      updatePrintUi('failed', 'Token hasil tidak tersedia');
+      return;
+    }
+
+    const job = await apiFetchJson('/api/print-jobs', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        token: state.resultToken,
+        orderId: state.orderId,
+      }),
+    });
+
+    state.printJobId = job.id || '';
+    state.printJobStatus = job.status || 'queued';
+    updatePrintUi(state.printJobStatus, state.printJobStatus === 'done' ? 'Cetak selesai' : 'Job cetak dibuat');
+
+    if (!state.printJobId) return;
+
+    clearInterval(state.printPollTimer);
+    state.printPollTimer = setInterval(async () => {
+      try {
+        const latest = await apiFetchJson(`/api/print-jobs/${encodeURIComponent(state.printJobId)}`);
+        state.printJobStatus = latest.status || state.printJobStatus;
+
+        if (state.printJobStatus === 'queued') updatePrintUi('queued', 'Antrian cetak...');
+        if (state.printJobStatus === 'printing') updatePrintUi('printing', 'Sedang mencetak...');
+        if (state.printJobStatus === 'done') {
+          updatePrintUi('done', 'Cetak selesai');
+          clearInterval(state.printPollTimer);
+        }
+        if (state.printJobStatus === 'failed') {
+          updatePrintUi('failed', `Cetak gagal: ${latest.error || 'unknown error'}`);
+          clearInterval(state.printPollTimer);
+        }
+      } catch (error) {
+        console.warn('Print status poll failed', error);
+      }
+    }, 1500);
+  }
+
   function syncResultActions() {
     const resultCanvas = $('#result-canvas');
     const btnDownload = $('#btn-download');
@@ -1286,9 +1375,16 @@
     }
 
     if (btnPrint) {
-      btnPrint.onclick = () => {
-        state.printRequested = true;
-        window.print();
+      btnPrint.onclick = async () => {
+        try {
+          state.printRequested = true;
+          updatePrintUi('queued', 'Mengirim job cetak...');
+          await requestServerPrint();
+        } catch (error) {
+          console.warn('Server print failed, fallback to browser print', error);
+          updatePrintUi('failed', 'Server print gagal, buka dialog cetak manual');
+          window.print();
+        }
       };
     }
 
@@ -1306,7 +1402,7 @@
     const printBar = $('#print-bar');
 
     const markReady = () => {
-      if (printStatus) printStatus.textContent = 'Siap dicetak di browser';
+      if (printStatus) printStatus.textContent = 'Siap kirim ke printer';
       if (printIcon) {
         printIcon.classList.remove('spinning');
         printIcon.textContent = 'print';
@@ -1345,12 +1441,14 @@
     state.resultDownloadUrl = destCanvas.toDataURL('image/png');
     state.resultShareUrl = state.paymentTransaction?.downloadUrl || state.paymentTransaction?.download_url || '';
     state.resultShareQrDataUrl = '';
+    state.resultToken = '';
 
     try {
       const shareSession = await createResultShareSession();
       if (shareSession) {
         state.resultShareUrl = shareSession.downloadUrl || shareSession.download_url || state.resultShareUrl;
         state.resultShareQrDataUrl = shareSession.downloadQrDataUrl || shareSession.download_qr_data_url || '';
+        state.resultToken = shareSession.token || '';
       }
     } catch (error) {
       console.warn('Failed to create result share session', error);
@@ -1406,6 +1504,7 @@
     clearInterval(state.paymentTimer);
     clearInterval(state.paymentPollTimer);
     clearInterval(state.returnTimer);
+    clearInterval(state.printPollTimer);
     window.onafterprint = null;
 
     // Reset state
@@ -1427,7 +1526,10 @@
     state.paymentTransaction = null;
     state.resultDownloadUrl = '';
     state.resultShareUrl = '';
+    state.resultToken = '';
     state.printRequested = false;
+    state.printJobId = '';
+    state.printJobStatus = '';
 
     // Reset UI
     $$('.voucher-success').forEach(el => el.classList.add('hidden'));

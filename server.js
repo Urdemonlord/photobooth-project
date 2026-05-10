@@ -5,6 +5,7 @@ const fsp = require('fs/promises');
 const path = require('path');
 const crypto = require('crypto');
 const QRCode = require('qrcode');
+const { execFile } = require('child_process');
 require('dotenv').config();
 
 const app = express();
@@ -20,9 +21,17 @@ const PAKASIR_METHOD = process.env.PAKASIR_METHOD || 'qris';
 const INTERNAL_API_KEY = process.env.INTERNAL_API_KEY || '';
 const RESULTS_TTL_HOURS = Number(process.env.RESULTS_TTL_HOURS || 24);
 const RESULT_MAX_BYTES = Number(process.env.RESULT_MAX_BYTES || 10 * 1024 * 1024);
+const PRINT_ENABLED = String(process.env.PRINT_ENABLED || 'false').toLowerCase() === 'true';
+const PRINT_STRATEGY = String(process.env.PRINT_STRATEGY || 'lp').toLowerCase();
+const PRINT_COMMAND = process.env.PRINT_COMMAND || 'lp';
+const PRINT_PRINTER_NAME = process.env.PRINT_PRINTER_NAME || '';
+const PRINT_TIMEOUT_MS = Number(process.env.PRINT_TIMEOUT_MS || 30000);
 const CORS_ORIGINS = String(process.env.CORS_ORIGINS || '').split(',').map((item) => item.trim()).filter(Boolean);
 const PORT = Number(process.env.PORT || 3000);
 const paymentSessions = new Map();
+const printJobs = new Map();
+const printQueue = [];
+let isPrintWorkerRunning = false;
 
 app.set('trust proxy', 1);
 app.use((req, res, next) => {
@@ -478,6 +487,87 @@ async function loadResultShare(token) {
   };
 }
 
+function resolveResultFileByToken(token) {
+  const safeToken = String(token || '').replace(/[^a-zA-Z0-9]/g, '');
+  if (!safeToken) return null;
+
+  const metaPath = path.join(RESULTS_DIR, `${safeToken}.json`);
+  if (!fs.existsSync(metaPath)) return null;
+
+  try {
+    const record = JSON.parse(fs.readFileSync(metaPath, 'utf8'));
+    const filePath = path.join(RESULTS_DIR, record.fileName || '');
+    if (!record?.fileName || !fs.existsSync(filePath)) return null;
+    return { token: safeToken, filePath, record };
+  } catch {
+    return null;
+  }
+}
+
+function runPrintCommand(filePath) {
+  return new Promise((resolve, reject) => {
+    if (!PRINT_ENABLED) {
+      const error = new Error('Printing is disabled on server');
+      error.code = 'PRINT_DISABLED';
+      reject(error);
+      return;
+    }
+
+    if (PRINT_STRATEGY !== 'lp') {
+      const error = new Error(`Unsupported print strategy: ${PRINT_STRATEGY}`);
+      error.code = 'PRINT_STRATEGY_UNSUPPORTED';
+      reject(error);
+      return;
+    }
+
+    const args = [];
+    if (PRINT_PRINTER_NAME) args.push('-d', PRINT_PRINTER_NAME);
+    args.push(filePath);
+
+    execFile(PRINT_COMMAND, args, { timeout: PRINT_TIMEOUT_MS }, (error, stdout, stderr) => {
+      if (error) {
+        const wrapped = new Error(stderr || error.message || 'Print command failed');
+        wrapped.code = error.code || 'PRINT_COMMAND_FAILED';
+        reject(wrapped);
+        return;
+      }
+      resolve({ stdout: String(stdout || '').trim(), stderr: String(stderr || '').trim() });
+    });
+  });
+}
+
+async function processPrintQueue() {
+  if (isPrintWorkerRunning) return;
+  isPrintWorkerRunning = true;
+
+  while (printQueue.length > 0) {
+    const jobId = printQueue.shift();
+    const job = printJobs.get(jobId);
+    if (!job) continue;
+
+    job.status = 'printing';
+    job.startedAt = new Date().toISOString();
+    job.updatedAt = job.startedAt;
+
+    try {
+      const result = await runPrintCommand(job.filePath);
+      job.status = 'done';
+      job.output = result.stdout;
+      job.error = '';
+    } catch (error) {
+      job.status = 'failed';
+      job.error = error.message;
+      job.errorCode = error.code || '';
+    }
+
+    job.finishedAt = new Date().toISOString();
+    job.updatedAt = job.finishedAt;
+    printJobs.set(jobId, job);
+  }
+
+  isPrintWorkerRunning = false;
+}
+
 function renderSharePage({ token, downloadUrl, imageUrl, customerName, orderId, createdAt, packageId }) {
   const title = 'Kothak Photo Download';
   return `<!doctype html>
@@ -793,6 +883,72 @@ app.post('/api/results', requireInternalApiKey, async (req, res) => {
       error: error.message,
     });
   }
+});
+
+app.post('/api/print-jobs', requireInternalApiKey, async (req, res) => {
+  try {
+    const { token, orderId = '', copies = 1, paperSize = 'auto' } = req.body || {};
+    if (!token) {
+      return res.status(400).json({ error: 'token is required' });
+    }
+
+    const resolved = resolveResultFileByToken(token);
+    if (!resolved) {
+      return res.status(404).json({ error: 'Result token not found' });
+    }
+
+    const existing = Array.from(printJobs.values()).find((job) => job.token === resolved.token && job.status !== 'failed');
+    if (existing) {
+      return res.json(existing);
+    }
+
+    const jobId = crypto.randomUUID().replace(/-/g, '').slice(0, 16);
+    const now = new Date().toISOString();
+    const job = {
+      id: jobId,
+      token: resolved.token,
+      orderId: String(orderId || resolved.record.orderId || ''),
+      filePath: resolved.filePath,
+      copies: Math.max(1, Number(copies) || 1),
+      paperSize: String(paperSize || 'auto'),
+      status: 'queued',
+      createdAt: now,
+      updatedAt: now,
+      startedAt: '',
+      finishedAt: '',
+      error: '',
+      errorCode: '',
+      output: '',
+    };
+
+    printJobs.set(jobId, job);
+    printQueue.push(jobId);
+    void processPrintQueue();
+
+    res.status(202).json(job);
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+app.get('/api/print-jobs/:id', requireInternalApiKey, (req, res) => {
+  const job = printJobs.get(String(req.params.id || ''));
+  if (!job) {
+    return res.status(404).json({ error: 'Print job not found' });
+  }
+
+  return res.json(job);
+});
+
+app.get('/health/printer', (_req, res) => {
+  res.json({
+    ok: true,
+    printEnabled: PRINT_ENABLED,
+    strategy: PRINT_STRATEGY,
+    queueLength: printQueue.length,
+    workerRunning: isPrintWorkerRunning,
+    printerName: PRINT_PRINTER_NAME || null,
+  });
 });
 
 app.get('/share/:token', async (req, res) => {

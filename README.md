@@ -31,6 +31,8 @@ Lalu buka `http://localhost:3000`.
 - `GET /api/qris/:orderId/status` untuk polling status transaksi.
 - `POST /api/qris/:orderId/cancel` untuk membatalkan transaksi.
 - `POST /api/results` untuk menyimpan hasil foto dan membuat tautan share.
+- `POST /api/print-jobs` untuk membuat job cetak dari token hasil foto.
+- `GET /api/print-jobs/:id` untuk polling status cetak (`queued|printing|done|failed`).
 - `GET /share/:token` untuk halaman unduh hasil.
 
 ## Security & Operasional
@@ -42,6 +44,8 @@ Lalu buka `http://localhost:3000`.
 - Batas ukuran upload hasil foto via `RESULT_MAX_BYTES` (default 10MB).
 - Retensi file hasil via `RESULTS_TTL_HOURS` (default 24 jam), auto-cleanup tiap 1 jam.
 - Session pembayaran disimpan persisten di `data/payment-sessions.json` agar tidak hilang saat restart.
+- Print queue endpoint tersedia via `/api/print-jobs`; konfigurasi printer via `PRINT_*` env.
+- Health printer tersedia di `GET /health/printer`.
 
 ## Catatan
 
