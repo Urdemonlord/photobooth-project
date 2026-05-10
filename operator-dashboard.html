@@ -1,0 +1,72 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Operator Dashboard - LAZA Photobooth</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;600;700;800&family=Manrope:wght@400;600&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/icon?family=Material+Symbols+Rounded" rel="stylesheet" />
+  <link rel="stylesheet" href="operator-dashboard.css" />
+</head>
+<body>
+  <main class="operator-app">
+    <header class="topbar card">
+      <div>
+        <p class="eyebrow">LAZA PHOTOBOOTH</p>
+        <h1>Dashboard Operator</h1>
+      </div>
+      <a class="btn ghost" href="kothak-photo.html">
+        <span class="material-symbols-rounded">arrow_back</span>
+        Kembali ke Kiosk
+      </a>
+    </header>
+
+    <section class="stats">
+      <article class="card stat"><p>Total Antrian</p><strong id="stat-total">0</strong></article>
+      <article class="card stat"><p>In Session</p><strong id="stat-active">0</strong></article>
+      <article class="card stat"><p>Done</p><strong id="stat-done">0</strong></article>
+    </section>
+
+    <section class="card section">
+      <div class="section-head">
+        <h2>PIN Operator</h2>
+        <span id="pin-status" class="pill">Tidak aktif</span>
+      </div>
+      <div class="pin-grid">
+        <input id="pin-new" type="password" placeholder="PIN baru (min 4 digit)" />
+        <input id="pin-confirm" type="password" placeholder="Konfirmasi PIN" />
+      </div>
+      <div class="actions">
+        <button id="btn-pin-save" class="btn primary" type="button">Simpan PIN</button>
+        <button id="btn-pin-clear" class="btn" type="button">Hapus PIN</button>
+      </div>
+    </section>
+
+    <section class="card section">
+      <div class="section-head">
+        <h2>Antrian Paket</h2>
+        <div class="actions inline">
+          <button id="btn-refresh" class="btn" type="button">Refresh</button>
+          <button id="btn-clear-queue" class="btn danger" type="button">Clear Log</button>
+        </div>
+      </div>
+      <div id="queue-list" class="queue-list"></div>
+    </section>
+  </main>
+
+  <div id="pin-gate" class="pin-gate hidden" aria-hidden="true">
+    <div class="pin-dialog card">
+      <h3>Akses Operator</h3>
+      <p>Masukkan PIN untuk buka dashboard.</p>
+      <input id="pin-gate-input" type="password" placeholder="PIN operator" />
+      <button id="btn-pin-unlock" class="btn primary" type="button">Buka Dashboard</button>
+      <p id="pin-gate-error" class="error"></p>
+    </div>
+  </div>
+
+  <script src="kothak-photo.config.js"></script>
+  <script src="operator-dashboard.js"></script>
+</body>
+</html>

@@ -543,71 +543,10 @@
       </div>
     </section>
 
-    <button id="btn-package-settings" class="btn-package-settings" type="button" aria-label="Atur paket">
-      <span class="material-symbols-rounded">tune</span>
-      Atur Paket
-    </button>
-
-    <div id="package-settings-modal" class="package-settings-modal hidden" aria-hidden="true">
-      <div class="package-settings-panel glass-card">
-        <div class="package-settings-header">
-          <h3>Pengaturan Paket</h3>
-          <button id="btn-package-settings-close" class="btn-back" type="button" aria-label="Tutup">
-            <span class="material-symbols-rounded">close</span>
-          </button>
-        </div>
-        <p class="package-settings-sub">Klik-klik aja lalu simpan. Tersimpan lokal di device kiosk ini.</p>
-
-        <div id="package-settings-list" class="package-settings-list"></div>
-
-        <div class="package-settings-presets" id="package-settings-presets">
-          <button class="btn-outline btn-preset" type="button" data-preset="single">Preset Single</button>
-          <button class="btn-outline btn-preset" type="button" data-preset="bestie">Preset Bestie</button>
-          <button class="btn-outline btn-preset" type="button" data-preset="couple">Preset Couple</button>
-          <button class="btn-outline btn-preset" type="button" data-preset="signature">Preset Signature</button>
-        </div>
-
-        <div class="package-settings-print">
-          <h4>Ukuran Print</h4>
-          <div class="package-settings-print-row">
-            <select id="select-print-size">
-              <option value="2x6">2x6 inch (strip photobooth)</option>
-              <option value="4x6">4x6 inch</option>
-              <option value="2x3">2x3 inch</option>
-              <option value="custom">Custom (mm)</option>
-            </select>
-            <input id="input-print-width-mm" type="number" min="20" step="0.1" placeholder="Lebar (mm)" />
-            <input id="input-print-height-mm" type="number" min="20" step="0.1" placeholder="Tinggi (mm)" />
-            <button id="btn-print-size-save" class="btn-outline" type="button">Simpan Ukuran</button>
-          </div>
-        </div>
-
-        <div class="package-settings-pin">
-          <h4>PIN Operator</h4>
-          <div class="package-settings-pin-row">
-            <input id="input-operator-pin-new" type="password" placeholder="PIN baru (min 4 digit)" />
-            <input id="input-operator-pin-confirm" type="password" placeholder="Konfirmasi PIN baru" />
-          </div>
-          <div class="package-settings-pin-actions">
-            <button id="btn-operator-pin-save" class="btn-outline" type="button">Simpan PIN</button>
-            <button id="btn-operator-pin-clear" class="btn-outline" type="button">Hapus PIN</button>
-          </div>
-        </div>
-
-        <div class="package-settings-queue">
-          <div class="package-settings-queue-head">
-            <h4>Antrian Paket (Operator)</h4>
-            <button id="btn-queue-clear" class="btn-outline" type="button">Clear Log</button>
-          </div>
-          <div id="operator-queue-list" class="operator-queue-list"></div>
-        </div>
-
-        <div class="package-settings-actions">
-          <button id="btn-package-settings-reset" class="btn-outline" type="button">Reset Default</button>
-          <button id="btn-package-settings-save" class="btn-primary" type="button">Simpan</button>
-        </div>
-      </div>
-    </div>
+    <a id="btn-package-settings" class="btn-package-settings" href="operator-dashboard.html" aria-label="Dashboard operator">
+      <span class="material-symbols-rounded">admin_panel_settings</span>
+      Dashboard Operator
+    </a>
 
     <!-- Hidden canvas for photo processing -->
     <canvas id="hidden-canvas" class="hidden-canvas"></canvas>
