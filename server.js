@@ -6,6 +6,7 @@ const path = require('path');
 const crypto = require('crypto');
 const QRCode = require('qrcode');
 const { execFile } = require('child_process');
+const { S3Client, PutObjectCommand } = require('@aws-sdk/client-s3');
 require('dotenv').config();
 
 const app = express();
@@ -16,6 +17,11 @@ const SESSIONS_PATH = path.join(DATA_DIR, 'payment-sessions.json');
 const PRINT_JOBS_PATH = path.join(DATA_DIR, 'print-jobs.json');
 const PUBLIC_URL = process.env.PUBLIC_URL || '';
 const PUBLIC_RESULTS_BASE_URL = String(process.env.PUBLIC_RESULTS_BASE_URL || '').trim().replace(/\/$/, '');
+const R2_ENDPOINT = String(process.env.R2_ENDPOINT || '').trim().replace(/\/$/, '');
+const R2_BUCKET = String(process.env.R2_BUCKET || '').trim();
+const R2_ACCESS_KEY_ID = String(process.env.R2_ACCESS_KEY_ID || '').trim();
+const R2_SECRET_ACCESS_KEY = String(process.env.R2_SECRET_ACCESS_KEY || '').trim();
+const R2_REGION = String(process.env.R2_REGION || 'auto').trim();
 const PAKASIR_BASE_URL = process.env.PAKASIR_BASE_URL || 'https://app.pakasir.com';
 const PAKASIR_PROJECT = process.env.PAKASIR_PROJECT || process.env.PAKASIR_SLUG || '';
 const PAKASIR_API_KEY = process.env.PAKASIR_API_KEY || '';
@@ -48,6 +54,19 @@ const printMetrics = {
   lastFailureAt: '',
   lastError: '',
 };
+
+const hasR2Config = Boolean(R2_ENDPOINT && R2_BUCKET && R2_ACCESS_KEY_ID && R2_SECRET_ACCESS_KEY);
+const r2Client = hasR2Config
+  ? new S3Client({
+    region: R2_REGION,
+    endpoint: R2_ENDPOINT,
+    credentials: {
+      accessKeyId: R2_ACCESS_KEY_ID,
+      secretAccessKey: R2_SECRET_ACCESS_KEY,
+    },
+    forcePathStyle: true,
+  })
+  : null;
 
 app.set('trust proxy', 1);
 app.use((req, res, next) => {
@@ -576,6 +595,19 @@ async function saveResultShare({ orderId, packageId, customerName, imageDataUrl 
   const metaPath = path.join(RESULTS_DIR, metaFileName);
 
   await fsp.writeFile(filePath, buffer);
+
+  if (r2Client) {
+    try {
+      await r2Client.send(new PutObjectCommand({
+        Bucket: R2_BUCKET,
+        Key: fileName,
+        Body: buffer,
+        ContentType: mimeType,
+      }));
+    } catch (error) {
+      console.error('R2 upload failed:', error.message);
+    }
+  }
 
   const record = {
     token,
