@@ -508,18 +508,15 @@ h1, h2, h3, h4 {
    =================================================== */
 .package-grid {
   display: grid;
-  grid-auto-flow: column;
-  grid-auto-columns: minmax(260px, 1fr);
-  gap: var(--sp-lg);
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  align-items: stretch;
+  gap: clamp(0.9rem, 1.8vw, 1.25rem);
+  padding-top: 0.35rem;
   padding-bottom: var(--sp-lg);
-  overflow-x: auto;
-  overscroll-behavior-x: contain;
-  scroll-snap-type: x mandatory;
 }
 
 .package-grid .package-card {
-  scroll-snap-align: center;
-  min-height: 320px;
+  min-height: 340px;
 }
 
 .package-card {
@@ -527,57 +524,54 @@ h1, h2, h3, h4 {
   background: var(--surface-container);
   border: 1.5px solid transparent;
   border-radius: var(--r-lg);
-  padding: var(--sp-lg);
+  padding: 3.25rem var(--sp-lg) var(--sp-lg);
   cursor: pointer;
   transition: all var(--duration) var(--ease);
   display: flex;
   flex-direction: column;
-  gap: var(--sp-sm);
+  gap: 0.7rem;
+  overflow: hidden;
 }
 
-.package-card:hover { background: var(--surface-container-high); }
+.package-card:hover {
+  background: var(--surface-container-high);
+  transform: translateY(-3px);
+}
 
 .package-card.selected {
   border-color: var(--gold);
   background: var(--surface-container-high);
-  box-shadow: 0 0 24px rgba(255, 219, 60, 0.12);
+  box-shadow: 0 18px 40px rgba(5, 10, 20, 0.28), 0 0 0 1px rgba(255, 216, 192, 0.15);
 }
 
 .pkg-badge {
-  display: block;
   position: absolute;
-  top: -12px;
-  right: var(--sp-lg);
+  top: 1rem;
+  right: 1rem;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
   background: linear-gradient(180deg, #ffd8c0 0%, var(--gold) 40%, #f59e0b 100%);
   color: #1a1400;
   font-family: var(--font-display);
   font-size: 0.68rem;
   font-weight: 800;
-  padding: 6px 12px;
+  min-height: 30px;
+  padding: 0.35rem 0.8rem;
   border-radius: var(--r-full);
   letter-spacing: 0.04em;
   white-space: nowrap;
+  box-shadow: 0 10px 20px rgba(244, 139, 74, 0.25);
+  z-index: 1;
 }
 
 .pkg-badge.popular {
-  position: absolute;
-  top: -12px;
-  right: var(--sp-lg);
   background: linear-gradient(180deg, #fef3c7 0%, var(--gold) 40%, #f59e0b 100%);
   color: #1a1400;
-  font-family: var(--font-display);
   font-size: 0.7rem;
-  font-weight: 800;
-  padding: 6px 14px;
-  border-radius: var(--r-full);
   letter-spacing: 0.05em;
-  height: auto;
-  width: auto;
-  white-space: nowrap;
   line-height: 1;
   box-shadow: 0 8px 16px rgba(255, 219, 60, 0.3), inset 0 1px 2px rgba(255, 255, 255, 0.8);
-  position: relative;
-  overflow: hidden;
 }
 
 .pkg-badge.popular::before {
@@ -600,11 +594,14 @@ h1, h2, h3, h4 {
 .pkg-icon {
   font-size: 2rem;
   color: var(--gold);
+  margin-top: 0.15rem;
 }
 
 .package-card h3 {
   font-size: 1.2rem;
   color: var(--secondary);
+  line-height: 1.2;
+  max-width: 13ch;
 }
 
 .pkg-price {
@@ -612,6 +609,7 @@ h1, h2, h3, h4 {
   font-size: 1.5rem;
   font-weight: 800;
   color: var(--gold);
+  margin-bottom: 0.2rem;
 }
 
 .pkg-features {
@@ -619,7 +617,8 @@ h1, h2, h3, h4 {
   display: flex;
   flex-direction: column;
   gap: 6px;
-  margin-top: var(--sp-sm);
+  margin-top: auto;
+  padding-top: 0.35rem;
 }
 
 .pkg-features li {
@@ -1948,12 +1947,7 @@ h1, h2, h3, h4 {
    =================================================== */
 @media (min-width: 768px) {
   .package-grid {
-    flex-direction: row;
-    gap: var(--sp-md);
-  }
-
-  .package-card {
-    flex: 1;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
   }
 
   .frame-gallery {
@@ -1968,6 +1962,10 @@ h1, h2, h3, h4 {
 }
 
 @media (max-width: 768px) {
+  .package-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
   .screen-header {
     flex-wrap: wrap;
     align-items: flex-start;
@@ -2007,6 +2005,14 @@ h1, h2, h3, h4 {
 }
 
 @media (max-width: 480px) {
+  .package-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .package-card {
+    min-height: 0;
+  }
+
   .brand-name { font-size: 2.2rem; }
   .btn-start { font-size: 1.1rem; min-height: 60px; }
   .frame-card { width: min(42vw, 170px); }

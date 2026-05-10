@@ -1,5 +1,5 @@
 /* ===================================================
-   KOTHAK PHOTO — Kiosk Photobooth Application Logic
+   LAZA PHOTO — Kiosk Photobooth Application Logic
    =================================================== */
 
 (function () {
@@ -933,7 +933,7 @@
     clearInterval(state.paymentTimer);
     clearInterval(state.paymentPollTimer);
     state.paymentExpiryAt = 0;
-    setPaymentStatus('Pembayaran berhasil! ✓', true);
+    setPaymentStatus('Pembayaran berhasil!', true);
 
     const transaction = payload?.payment || payload?.transaction || payload || {};
     state.paymentTransaction = transaction;
@@ -1151,7 +1151,7 @@
       }
       
       if (!qrDataUrl.startsWith('data:image')) {
-        console.warn('⚠️ QR Code format unexpected:', { qrDataUrl: qrDataUrl.slice(0, 50) });
+        console.warn('QR Code format unexpected:', { qrDataUrl: qrDataUrl.slice(0, 50) });
       }
 
       const expiration = data.expiresAt || payment.expired_at ? Date.parse(data.expiresAt || payment.expired_at) : NaN;
@@ -1188,9 +1188,9 @@
       // Fallback polling in case user manually pays (every 3 seconds)
       void pollPaymentStatus();
     } catch (error) {
-      console.error('❌ Payment session creation failed:', error);
+      console.error('Payment session creation failed:', error);
       if (state.currentScreen !== 'screen-payment') return;
-      console.info('ℹ️ Falling back to demo mode...');
+      console.info('Falling back to demo mode...');
       renderPaymentQr(null);
       setPaymentStatus('Mode demo (Backend tidak tersedia)');
       
@@ -1646,7 +1646,7 @@
         ctx.fillText('Kisah Sejarah dalam Satu Bingkai', w / 2, 135);
         ctx.fillRect(20, h - 30, w - 40, 1);
         ctx.font = '10px serif';
-        ctx.fillText('Kothak Photo Edition', w / 2, h - 15);
+        ctx.fillText('Laza Photo Edition', w / 2, h - 15);
       }
     }
 
@@ -1655,7 +1655,7 @@
         ctx.fillStyle = '#000';
         ctx.textAlign = 'left';
         ctx.font = '700 16px "Plus Jakarta Sans"';
-        ctx.fillText('Kothak Photo', 20, h - 20);
+        ctx.fillText('Laza Photo', 20, h - 20);
         ctx.textAlign = 'right';
         ctx.fillStyle = '#888';
         ctx.font = '400 12px "Plus Jakarta Sans"';
@@ -1664,16 +1664,16 @@
         ctx.fillStyle = '#2e5f8a';
         ctx.textAlign = 'center';
         ctx.font = '800 24px "Plus Jakarta Sans"';
-        ctx.fillText('WOOF WOOF! 🐕', w / 2, 40);
+        ctx.fillText('WOOF WOOF!', w / 2, 40);
         ctx.font = '600 14px "Plus Jakarta Sans"';
-        ctx.fillText('Kothak Photo 🐾', w / 2, h - 20);
+        ctx.fillText('Laza Photo', w / 2, h - 20);
       } else if (state.selectedFrame === 'love') {
         ctx.fillStyle = 'rgba(255,255,255,0.9)';
         ctx.textAlign = 'center';
         ctx.font = 'italic 36px Georgia, serif';
         ctx.fillText('Love', w / 2, h - 45);
         ctx.font = '14px sans-serif';
-        ctx.fillText('Kothak Photo ♥', w / 2, h - 20);
+        ctx.fillText('Laza Photo', w / 2, h - 20);
       } else if (state.selectedFrame === 'vintage') {
         ctx.fillStyle = 'rgba(255,255,255,0.8)';
         ctx.textAlign = 'center';
@@ -1683,7 +1683,7 @@
         ctx.fillStyle = (state.selectedFrame === 'neon') ? '#00ffff' : '#d4a76a';
         ctx.textAlign = 'center';
         ctx.font = '800 16px "Plus Jakarta Sans"';
-        ctx.fillText('KOTHAK PHOTO', w / 2, h - 20);
+        ctx.fillText('LAZA PHOTO', w / 2, h - 20);
       }
     }
 
@@ -1833,7 +1833,7 @@
   }
 
   function getResultFileName() {
-    return `kothak-photo-${state.orderId || Date.now()}.png`;
+    return `laza-photo-${state.orderId || Date.now()}.png`;
   }
 
   function downloadCanvasImage(canvas, fileName) {

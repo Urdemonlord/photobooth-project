@@ -840,7 +840,7 @@ async function processPrintQueue() {
 }
 
 function renderSharePage({ token, downloadUrl, imageUrl, customerName, orderId, createdAt, packageId }) {
-  const title = 'Kothak Photo Download';
+  const title = 'Laza Photo Download';
   return `<!doctype html>
 <html lang="id">
 <head>
@@ -976,7 +976,7 @@ function renderSharePage({ token, downloadUrl, imageUrl, customerName, orderId, 
   <main class="card">
     <section class="hero">
       <div class="content">
-        <p class="eyebrow">Kothak Photo</p>
+        <p class="eyebrow">Laza Photo</p>
         <h1>Foto kamu sudah siap diunduh</h1>
         <p>Gunakan tombol unduh untuk mengambil file PNG asli. Halaman ini juga bisa dibuka dari QR di layar hasil.</p>
         <div class="meta">
@@ -1538,7 +1538,7 @@ async function start() {
   }
 
   const server = app.listen(PORT, () => {
-    console.log(`Kothak Photo server running on http://localhost:${PORT}`);
+    console.log(`Laza Photo server running on http://localhost:${PORT}`);
   });
 
   server.on('error', (error) => {
