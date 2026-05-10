@@ -5,10 +5,10 @@
   "type": "commonjs",
   "scripts": {
     "start": "node server.js",
-    "dev": "node server.js"
+    "dev": "node --watch server.js"
   },
   "dependencies": {
-    "@aws-sdk/client-s3": "^3.890.0",
+    "@aws-sdk/client-s3": "^3.1045.0",
     "dotenv": "^16.4.5",
     "express": "^4.21.2",
     "express-rate-limit": "^8.5.1",

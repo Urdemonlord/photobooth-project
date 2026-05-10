@@ -42,7 +42,7 @@ Lalu buka `http://localhost:3000`.
 ## Security & Operasional
 
 - `PUBLIC_URL` untuk domain publik aplikasi (fallback jika URL R2 tidak diset).
-- `PUBLIC_RESULTS_BASE_URL` untuk domain/file-base publik hasil foto (mis. Cloudflare R2 public/custom domain). Jika diisi, response `/api/results` akan memprioritaskan URL R2 untuk `shareUrl` dan `downloadUrl`.
+- `PUBLIC_RESULTS_BASE_URL` untuk domain/file-base publik hasil foto (mis. Cloudflare R2 public/custom domain). Jangan isi dengan endpoint private `*.r2.cloudflarestorage.com`; pakai public/custom domain yang memang bisa diakses browser. Response `/api/results` akan memakai URL ini untuk `shareUrl`, `downloadUrl`, dan QR hasil.
 - `CORS_ORIGINS` untuk whitelist origin frontend (pisahkan dengan koma).
 - `INTERNAL_API_KEY` untuk proteksi endpoint `/api/*`.
   - Kirim header `x-internal-api-key: <INTERNAL_API_KEY>` dari frontend/backend caller.

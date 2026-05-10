@@ -1862,6 +1862,31 @@
 
   }
 
+  async function fetchDownloadQrDataUrl(downloadUrl) {
+    const normalizedUrl = String(downloadUrl || '').trim();
+    if (!normalizedUrl) return '';
+
+    try {
+      const payload = await apiFetchJson(`/api/qrcode?text=${encodeURIComponent(normalizedUrl)}`);
+      return payload?.qrDataUrl || payload?.qr_data_url || '';
+    } catch (error) {
+      console.warn('Failed to generate download QR', error);
+      return '';
+    }
+  }
+
+  async function ensureResultDownloadQr() {
+    if (state.resultShareQrDataUrl) return state.resultShareQrDataUrl;
+    if (!state.resultShareUrl) return '';
+
+    const qrDataUrl = await fetchDownloadQrDataUrl(state.resultShareUrl);
+    if (qrDataUrl) {
+      state.resultShareQrDataUrl = qrDataUrl;
+    }
+
+    return state.resultShareQrDataUrl;
+  }
+
   function updatePrintUi(status, message) {
     const printStatus = $('#print-status-text');
     const printIcon = $('.print-icon');
@@ -2045,6 +2070,10 @@
       }
     } catch (error) {
       console.warn('Failed to create result share session', error);
+    }
+
+    if (!state.resultShareQrDataUrl && state.resultShareUrl) {
+      await ensureResultDownloadQr();
     }
 
     syncResultActions();

@@ -110,6 +110,10 @@ function requireInternalApiKey(req, res, next) {
   const headerKey = req.headers['x-internal-api-key'];
   const candidate = String(headerKey || bearer || '').trim();
 
+  if (!candidate && isTrustedBrowserRequest(req)) {
+    return next();
+  }
+
   if (!candidate || candidate !== INTERNAL_API_KEY) {
     return res.status(401).json({ error: 'Unauthorized' });
   }
@@ -165,6 +169,29 @@ function normalizeAmount(value) {
   return Math.round(amount);
 }
 
+function isLoopbackHostname(hostname = '') {
+  const value = String(hostname || '').trim().toLowerCase();
+  return value === 'localhost'
+    || value === '127.0.0.1'
+    || value === '::1'
+    || value.endsWith('.localhost');
+}
+
+function isPrivateR2ApiHostname(hostname = '') {
+  return String(hostname || '').trim().toLowerCase().endsWith('.r2.cloudflarestorage.com');
+}
+
+function isUsablePublicBaseUrl(value = '') {
+  try {
+    const url = new URL(String(value || '').trim());
+    return ['http:', 'https:'].includes(url.protocol)
+      && !isLoopbackHostname(url.hostname)
+      && !isPrivateR2ApiHostname(url.hostname);
+  } catch {
+    return false;
+  }
+}
+
 function getBaseUrl(req) {
   if (PUBLIC_URL) {
     return PUBLIC_URL.replace(/\/$/, '');
@@ -175,10 +202,57 @@ function getBaseUrl(req) {
   return `${protocol}://${host}`;
 }
 
+function getTrustedRequestOrigins(req) {
+  const values = new Set();
+  const addValue = (value = '') => {
+    const normalized = String(value || '').trim().replace(/\/$/, '');
+    if (normalized) values.add(normalized);
+  };
+
+  addValue(PUBLIC_URL);
+  addValue(getBaseUrl(req));
+
+  return values;
+}
+
+function isTrustedBrowserRequest(req) {
+  const trustedOrigins = getTrustedRequestOrigins(req);
+  const origin = String(req.headers.origin || '').trim().replace(/\/$/, '');
+  const referer = String(req.headers.referer || '').trim();
+  const secFetchSite = String(req.headers['sec-fetch-site'] || '').trim().toLowerCase();
+
+  if (origin && trustedOrigins.has(origin)) {
+    return true;
+  }
+
+  if (referer) {
+    try {
+      const refererOrigin = new URL(referer).origin.replace(/\/$/, '');
+      if (trustedOrigins.has(refererOrigin)) {
+        return true;
+      }
+    } catch {}
+  }
+
+  return secFetchSite === 'same-origin' || secFetchSite === 'same-site';
+}
+
+function getPublicResultsBaseUrl(req) {
+  const candidates = [
+    PUBLIC_RESULTS_BASE_URL,
+    getBaseUrl(req),
+  ]
+    .map((value) => String(value || '').trim().replace(/\/$/, ''))
+    .filter(Boolean);
+
+  return candidates.find((value) => isUsablePublicBaseUrl(value)) || '';
+}
+
 function getPublicResultDirectUrl(req, fileName = '') {
   if (!fileName) return '';
-  if (!PUBLIC_RESULTS_BASE_URL) return '';
-  return `${PUBLIC_RESULTS_BASE_URL}/${encodeURIComponent(fileName)}`;
+  const baseUrl = getPublicResultsBaseUrl(req);
+  if (!baseUrl) return '';
+  return `${baseUrl}/${encodeURIComponent(fileName)}`;
 }
 
 async function ensureDirectories() {
@@ -596,17 +670,21 @@ async function saveResultShare({ orderId, packageId, customerName, imageDataUrl 
 
   await fsp.writeFile(filePath, buffer);
 
-  if (r2Client) {
-    try {
-      await r2Client.send(new PutObjectCommand({
-        Bucket: R2_BUCKET,
-        Key: fileName,
-        Body: buffer,
-        ContentType: mimeType,
-      }));
-    } catch (error) {
-      console.error('R2 upload failed:', error.message);
-    }
+  if (!r2Client) {
+    throw new Error('R2 storage is not configured');
+  }
+
+  try {
+    await r2Client.send(new PutObjectCommand({
+      Bucket: R2_BUCKET,
+      Key: fileName,
+      Body: buffer,
+      ContentType: mimeType,
+    }));
+  } catch (error) {
+    const message = error?.message ? `R2 upload failed: ${error.message}` : 'R2 upload failed';
+    console.error(message);
+    throw new Error(message);
   }
 
   const record = {
@@ -1227,7 +1305,7 @@ app.post('/api/results', requireInternalApiKey, async (req, res) => {
     const directPublicUrl = getPublicResultDirectUrl(req, record.fileName);
     if (!directPublicUrl) {
       return res.status(500).json({
-        error: 'PUBLIC_RESULTS_BASE_URL is required for R2-only mode',
+        error: 'A public result base URL is required. Set PUBLIC_RESULTS_BASE_URL to your public R2/custom domain, not localhost or the private cloudflarestorage endpoint.',
       });
     }
 
@@ -1247,6 +1325,20 @@ app.post('/api/results', requireInternalApiKey, async (req, res) => {
     res.status(400).json({
       error: error.message,
     });
+  }
+});
+
+app.get('/api/qrcode', requireInternalApiKey, async (req, res) => {
+  try {
+    const text = String(req.query.text || '').trim();
+    if (!text) {
+      return res.status(400).json({ error: 'text is required' });
+    }
+
+    const qrDataUrl = await createQrDataUrl(text);
+    return res.json({ text, qrDataUrl });
+  } catch (error) {
+    return res.status(500).json({ error: error.message || 'Failed to generate QR code' });
   }
 });
 
@@ -1445,8 +1537,26 @@ async function start() {
     void processPrintQueue();
   }
 
-  app.listen(PORT, () => {
+  const server = app.listen(PORT, () => {
     console.log(`Kothak Photo server running on http://localhost:${PORT}`);
+  });
+
+  server.on('error', (error) => {
+    if (error?.code === 'EADDRINUSE') {
+      console.error(
+        [
+          `Port ${PORT} is already in use.`,
+          'This project uses the same server for `npm run dev` and `node server.js`.',
+          'Stop the existing process first, or run a second instance with a different port.',
+          `Example: $env:PORT=3100; node server.js`,
+        ].join('\n'),
+      );
+      process.exit(1);
+      return;
+    }
+
+    console.error(error);
+    process.exit(1);
   });
 }
 
