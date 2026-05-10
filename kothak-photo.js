@@ -1916,6 +1916,11 @@
     }
 
     syncResultActions();
+    const qrEl = $('#download-qr');
+    if (qrEl) {
+      qrEl.classList.remove('revealed');
+      requestAnimationFrame(() => qrEl.classList.add('revealed'));
+    }
     preparePrintHooks();
 
     // Confetti
@@ -2010,6 +2015,8 @@
     applyPackageFeatureVisibility();
     renderPaymentQr(null);
     renderDownloadQr(null);
+    const qrEl = $('#download-qr');
+    if (qrEl) qrEl.classList.remove('revealed');
     setPaymentStatus('Siap memulai pembayaran');
     $$('.filter-chip').forEach(c => c.classList.remove('active'));
     $$('.filter-chip')[0]?.classList.add('active');

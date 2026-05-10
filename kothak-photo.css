@@ -389,6 +389,30 @@ h1, h2, h3, h4 {
   z-index: 2;
 }
 
+.floating-stickers {
+  position: absolute;
+  inset: -40px -90px auto;
+  height: 220px;
+  pointer-events: none;
+}
+
+.sticker {
+  position: absolute;
+  font-size: 2rem;
+  filter: drop-shadow(0 8px 16px rgba(0,0,0,.25));
+  animation: stickerFloat 4s ease-in-out infinite;
+}
+
+.sticker.s1 { left: 10%; top: 18px; animation-delay: 0s; }
+.sticker.s2 { right: 14%; top: 34px; animation-delay: .6s; }
+.sticker.s3 { left: 22%; top: 120px; animation-delay: 1.2s; }
+.sticker.s4 { right: 22%; top: 132px; animation-delay: 1.8s; }
+
+@keyframes stickerFloat {
+  0%,100% { transform: translateY(0) rotate(0deg); opacity: .75; }
+  50% { transform: translateY(-14px) rotate(6deg); opacity: 1; }
+}
+
 .landing-deco-strips {
   position: absolute;
   inset: 0;
@@ -1509,17 +1533,18 @@ h1, h2, h3, h4 {
 
 .countdown-num {
   font-family: var(--font-display);
-  font-size: 8rem;
-  font-weight: 800;
+  font-size: 9rem;
+  font-weight: 900;
   color: var(--gold);
-  text-shadow: 0 0 60px rgba(255, 219, 60, 0.5);
+  text-shadow: 0 0 70px rgba(255, 219, 60, 0.6);
   animation: count-pop 1s ease-out;
 }
 
 @keyframes count-pop {
-  0% { transform: scale(2); opacity: 0; }
-  50% { transform: scale(1); opacity: 1; }
-  100% { transform: scale(0.9); opacity: 0.8; }
+  0% { transform: scale(0.35); opacity: 0; }
+  45% { transform: scale(1.18); opacity: 1; }
+  75% { transform: scale(0.95); opacity: 1; }
+  100% { transform: scale(1); opacity: .95; }
 }
 
 .flash-overlay {
@@ -1804,8 +1829,16 @@ h1, h2, h3, h4 {
 }
 
 .download-qr {
-  width: clamp(92px, 24vw, 120px);
+  width: clamp(104px, 24vw, 128px);
   aspect-ratio: 1;
+  transform: scale(.9);
+  opacity: 0;
+  transition: transform .35s ease, opacity .35s ease;
+}
+
+.download-qr.revealed {
+  transform: scale(1);
+  opacity: 1;
 }
 
 .mini-qr { width: 100%; height: 100%; }
