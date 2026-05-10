@@ -1697,6 +1697,18 @@
         ctx.fillStyle = 'rgba(200, 150, 50, 0.18)';
         ctx.fillRect(x, y, w, h);
         break;
+      case 'film':
+        ctx.fillStyle = 'rgba(44, 30, 16, 0.14)';
+        ctx.fillRect(x, y, w, h);
+        break;
+      case 'softglow':
+        ctx.fillStyle = 'rgba(255, 220, 190, 0.16)';
+        ctx.fillRect(x, y, w, h);
+        break;
+      case 'natural':
+        ctx.fillStyle = 'rgba(255, 255, 255, 0.04)';
+        ctx.fillRect(x, y, w, h);
+        break;
     }
   }
 
