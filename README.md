@@ -67,5 +67,5 @@ Lalu buka `http://localhost:3000`.
   - Group: semua frame + extra print (`copies: 2`).
 - Di layar kamera ada batas waktu sesi foto per paket (reguler 60s, premium 90s, group 120s).
 - Rules paket bisa dioverride dari `kothak-photo.config.js` via `window.KOTHAK_PACKAGE_RULES` / meta `kothak-package-rules` (JSON).
-- Operator juga bisa ubah rules langsung dari UI tombol **Atur Paket** (pojok kanan atas). Hasilnya tersimpan lokal di browser kiosk (`localStorage`) dan bisa di-reset ke default.
+- Operator juga bisa ubah rules langsung dari UI tombol **Atur Paket** (pojok kanan atas) dengan mode checklist (tinggal centang frame/filter). Hasilnya tersimpan lokal di browser kiosk (`localStorage`) dan bisa di-reset ke default.
 - Unduhan hasil foto dibuat dari canvas asli lalu bisa dibagikan lewat tautan share.

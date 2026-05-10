@@ -247,8 +247,21 @@
   }
 
   function buildPackageEditorCard(pkgKey, rule, frameOptions, filterOptions) {
-    const frameValue = rule.allowedFrames === 'all' ? 'all' : (rule.allowedFrames || []).join(',');
-    const filterValue = (rule.allowedFilters || []).join(',');
+    const selectedFrames = new Set(rule.allowedFrames === 'all' ? frameOptions : (rule.allowedFrames || []));
+    const selectedFilters = new Set(rule.allowedFilters || []);
+    const frameChecks = frameOptions.map((frameKey) => `
+      <label class="package-check-item">
+        <input type="checkbox" data-field="allowedFrames" value="${frameKey}" ${selectedFrames.has(frameKey) ? 'checked' : ''} />
+        <span>${frameKey}</span>
+      </label>
+    `).join('');
+    const filterChecks = filterOptions.map((filterKey) => `
+      <label class="package-check-item">
+        <input type="checkbox" data-field="allowedFilters" value="${filterKey}" ${selectedFilters.has(filterKey) ? 'checked' : ''} />
+        <span>${filterKey}</span>
+      </label>
+    `).join('');
+
     return `
       <div class="package-editor-card" data-package="${pkgKey}">
         <h4 style="margin-bottom:8px; text-transform:capitalize;">Paket ${pkgKey}</h4>
@@ -261,16 +274,20 @@
             <label>Jumlah Print</label>
             <input type="number" min="1" step="1" data-field="printCopies" value="${Number(rule.printCopies) || 1}" />
           </div>
-          <div class="package-editor-field">
-            <label>Frame (koma, atau ketik all)</label>
-            <input type="text" data-field="allowedFrames" value="${frameValue}" placeholder="Contoh: birthday,friends" />
-            <small>Opsi: ${frameOptions.join(', ')}</small>
-          </div>
-          <div class="package-editor-field">
-            <label>Filter (koma)</label>
-            <input type="text" data-field="allowedFilters" value="${filterValue}" placeholder="Contoh: original,bw,warm" />
-            <small>Opsi: ${filterOptions.join(', ')}</small>
-          </div>
+        </div>
+
+        <div class="package-editor-field" style="margin-top:10px;">
+          <label>Frame yang diizinkan</label>
+          <label class="package-check-item package-check-all">
+            <input type="checkbox" data-field="allowedFramesAll" ${rule.allowedFrames === 'all' ? 'checked' : ''} />
+            <span>Semua frame</span>
+          </label>
+          <div class="package-check-grid">${frameChecks}</div>
+        </div>
+
+        <div class="package-editor-field" style="margin-top:10px;">
+          <label>Filter yang diizinkan</label>
+          <div class="package-check-grid">${filterChecks}</div>
         </div>
       </div>
     `;
@@ -293,6 +310,19 @@
       listEl.innerHTML = Object.entries(sourceRules)
         .map(([pkgKey, rule]) => buildPackageEditorCard(pkgKey, rule || {}, frameOptions, filterOptions))
         .join('');
+
+      $$('.package-editor-card', listEl).forEach((card) => {
+        const allFrames = $('[data-field="allowedFramesAll"]', card);
+        const frameChecks = $$('[data-field="allowedFrames"]', card);
+        const syncDisabled = () => {
+          const isAll = !!allFrames?.checked;
+          frameChecks.forEach((el) => {
+            el.disabled = isAll;
+          });
+        };
+        allFrames?.addEventListener('change', syncDisabled);
+        syncDisabled();
+      });
     };
 
     const openModal = () => {
@@ -318,16 +348,20 @@
         const pkgKey = card.dataset.package;
         const captureTime = Number($('[data-field="captureTimeSeconds"]', card)?.value || 90);
         const printCopies = Number($('[data-field="printCopies"]', card)?.value || 1);
-        const frameRaw = String($('[data-field="allowedFrames"]', card)?.value || '').trim();
-        const filterRaw = String($('[data-field="allowedFilters"]', card)?.value || '').trim();
+
+        const useAllFrames = !!$('[data-field="allowedFramesAll"]', card)?.checked;
+        const selectedFrames = $$('[data-field="allowedFrames"]:checked', card)
+          .map((el) => String(el.value || '').trim())
+          .filter(Boolean);
+        const selectedFilters = $$('[data-field="allowedFilters"]:checked', card)
+          .map((el) => String(el.value || '').trim())
+          .filter(Boolean);
 
         nextRules[pkgKey] = {
           captureTimeSeconds: Math.max(15, captureTime || 90),
           printCopies: Math.max(1, printCopies || 1),
-          allowedFrames: frameRaw.toLowerCase() === 'all'
-            ? 'all'
-            : frameRaw.split(',').map((v) => v.trim()).filter(Boolean),
-          allowedFilters: filterRaw.split(',').map((v) => v.trim()).filter(Boolean),
+          allowedFrames: useAllFrames ? 'all' : selectedFrames,
+          allowedFilters: selectedFilters.length > 0 ? selectedFilters : ['original'],
         };
       });
 

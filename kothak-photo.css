@@ -2077,6 +2077,32 @@ h1, h2, h3, h4 {
   padding: 0.4rem 0.55rem;
 }
 
+.package-check-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 0.45rem;
+  margin-top: 0.4rem;
+}
+
+.package-check-item {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  border: 1px solid rgba(255,255,255,0.1);
+  border-radius: 8px;
+  padding: 0.35rem 0.5rem;
+  background: rgba(7,19,37,0.55);
+  font-size: 0.82rem;
+}
+
+.package-check-item input {
+  accent-color: #ffdb3c;
+}
+
+.package-check-all {
+  margin-top: 0.25rem;
+}
+
 .package-settings-actions {
   display: flex;
   justify-content: flex-end;
@@ -2087,6 +2113,10 @@ h1, h2, h3, h4 {
 @media (max-width: 640px) {
   .package-editor-grid {
     grid-template-columns: 1fr;
+  }
+
+  .package-check-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 }
 
