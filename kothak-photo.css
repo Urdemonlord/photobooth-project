@@ -445,28 +445,14 @@ h1, h2, h3, h4 {
   gap: var(--sp-md);
 }
 
-.brand-icon {
-  width: 80px;
-  height: 80px;
-  border-radius: var(--r-lg);
-  background: linear-gradient(135deg, var(--gold) 0%, var(--gold-dim) 100%);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 2.5rem;
-  color: #1a1400;
-  box-shadow: 0 8px 40px rgba(255, 219, 60, 0.25);
+.brand-logo {
+  width: min(68vw, 360px);
+  height: auto;
+  border-radius: 999px;
+  filter: drop-shadow(0 14px 40px rgba(0, 0, 0, 0.35));
+  background: rgba(255, 255, 255, 0.08);
+  padding: 6px;
 }
-
-.brand-name {
-  font-family: var(--font-display);
-  font-size: 3rem;
-  font-weight: 800;
-  color: var(--secondary);
-  letter-spacing: -0.04em;
-}
-
-.brand-name .gold { color: var(--gold); }
 
 .brand-tagline {
   font-size: 1rem;
