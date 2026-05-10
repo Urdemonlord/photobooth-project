@@ -1224,9 +1224,10 @@ app.post('/api/results', requireInternalApiKey, async (req, res) => {
       customerName,
     });
 
-    const shareUrl = `${getBaseUrl(req)}/share/${record.token}`;
+    const fallbackShareUrl = `${getBaseUrl(req)}/share/${record.token}`;
     const directPublicUrl = getPublicResultDirectUrl(req, record.fileName);
-    const downloadUrl = directPublicUrl || `${shareUrl}/download`;
+    const downloadUrl = directPublicUrl || `${fallbackShareUrl}/download`;
+    const shareUrl = directPublicUrl || fallbackShareUrl;
     const downloadQrDataUrl = await createQrDataUrl(downloadUrl);
 
     res.json({
