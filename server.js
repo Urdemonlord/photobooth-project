@@ -28,12 +28,23 @@ const PRINT_COMMAND = process.env.PRINT_COMMAND || 'lp';
 const PRINT_PRINTER_NAME = process.env.PRINT_PRINTER_NAME || '';
 const PRINT_TIMEOUT_MS = Number(process.env.PRINT_TIMEOUT_MS || 30000);
 const PRINT_MAX_RETRIES = Number(process.env.PRINT_MAX_RETRIES || 2);
+const PRINT_JOB_RETENTION_HOURS = Number(process.env.PRINT_JOB_RETENTION_HOURS || 168);
+const PRINT_LOG_PATH = path.join(DATA_DIR, 'print-events.log');
 const CORS_ORIGINS = String(process.env.CORS_ORIGINS || '').split(',').map((item) => item.trim()).filter(Boolean);
 const PORT = Number(process.env.PORT || 3000);
 const paymentSessions = new Map();
 const printJobs = new Map();
 const printQueue = [];
 let isPrintWorkerRunning = false;
+const printMetrics = {
+  totalQueued: 0,
+  totalDone: 0,
+  totalFailed: 0,
+  totalCancelled: 0,
+  lastSuccessAt: '',
+  lastFailureAt: '',
+  lastError: '',
+};
 
 app.set('trust proxy', 1);
 app.use((req, res, next) => {
@@ -163,6 +174,8 @@ async function loadPrintJobsFromDisk() {
     if (!printJobs.has(id)) continue;
     if (!printQueue.includes(id)) printQueue.push(id);
   }
+
+  recomputePrintMetrics();
 }
 
 async function cleanupExpiredResults() {
@@ -213,6 +226,54 @@ async function readJsonIfExists(filePath) {
 
 async function writeJson(filePath, value) {
   await fsp.writeFile(filePath, JSON.stringify(value, null, 2));
+}
+
+async function appendPrintEvent(event, payload = {}) {
+  const line = JSON.stringify({
+    ts: new Date().toISOString(),
+    event,
+    ...payload,
+  });
+  await fsp.appendFile(PRINT_LOG_PATH, `${line}\n`);
+}
+
+function recomputePrintMetrics() {
+  printMetrics.totalQueued = 0;
+  printMetrics.totalDone = 0;
+  printMetrics.totalFailed = 0;
+  printMetrics.totalCancelled = 0;
+
+  for (const job of printJobs.values()) {
+    if (job.status === 'queued' || job.status === 'printing') printMetrics.totalQueued += 1;
+    if (job.status === 'done') printMetrics.totalDone += 1;
+    if (job.status === 'failed') printMetrics.totalFailed += 1;
+    if (job.status === 'cancelled') printMetrics.totalCancelled += 1;
+  }
+}
+
+async function pruneOldPrintJobs() {
+  const retentionMs = Math.max(1, PRINT_JOB_RETENTION_HOURS) * 60 * 60 * 1000;
+  const now = Date.now();
+  let removed = 0;
+
+  for (const [jobId, job] of printJobs.entries()) {
+    if (!['done', 'failed', 'cancelled'].includes(job.status)) continue;
+    const refAt = Date.parse(job.finishedAt || job.updatedAt || job.createdAt || 0);
+    if (!Number.isFinite(refAt)) continue;
+    if ((now - refAt) < retentionMs) continue;
+
+    printJobs.delete(jobId);
+    removeJobFromQueue(jobId);
+    removed += 1;
+  }
+
+  if (removed > 0) {
+    recomputePrintMetrics();
+    await persistPrintJobsToDisk();
+    await appendPrintEvent('print_jobs_pruned', { removed });
+  }
+
+  return removed;
 }
 
 function extractTransactionStatus(payload) {
@@ -597,6 +658,10 @@ async function processPrintQueue() {
       job.output = result.stdout;
       job.error = '';
       job.errorCode = '';
+      job.finishedAt = new Date().toISOString();
+      printMetrics.lastSuccessAt = job.finishedAt;
+      printMetrics.lastError = '';
+      await appendPrintEvent('print_job_done', { jobId: job.id, orderId: job.orderId, token: job.token, attempts: job.attempts });
     } catch (error) {
       job.attempts = Number(job.attempts || 0) + 1;
       job.error = error.message;
@@ -605,17 +670,19 @@ async function processPrintQueue() {
       if (job.attempts <= PRINT_MAX_RETRIES) {
         job.status = 'queued';
         printQueue.push(job.id);
+        await appendPrintEvent('print_job_retry_queued', { jobId: job.id, attempts: job.attempts, error: job.error, errorCode: job.errorCode });
       } else {
         job.status = 'failed';
+        job.finishedAt = new Date().toISOString();
+        printMetrics.lastFailureAt = job.finishedAt;
+        printMetrics.lastError = job.error;
+        await appendPrintEvent('print_job_failed', { jobId: job.id, attempts: job.attempts, error: job.error, errorCode: job.errorCode });
       }
-    }
-
-    if (job.status === 'done' || job.status === 'failed') {
-      job.finishedAt = new Date().toISOString();
     }
 
     job.updatedAt = new Date().toISOString();
     printJobs.set(jobId, job);
+    recomputePrintMetrics();
     await persistPrintJobsToDisk();
   }
 
@@ -1155,7 +1222,9 @@ app.post('/api/print-jobs', requireInternalApiKey, async (req, res) => {
 
     printJobs.set(jobId, job);
     printQueue.push(jobId);
+    recomputePrintMetrics();
     await persistPrintJobsToDisk();
+    await appendPrintEvent('print_job_created', { jobId, orderId: normalizedOrderId, token: resolved.token });
     void processPrintQueue();
 
     res.status(202).json(job);
@@ -1212,7 +1281,9 @@ app.post('/api/print-jobs/:id/retry', requireInternalApiKey, async (req, res) =>
   }
 
   printJobs.set(jobId, job);
+  recomputePrintMetrics();
   await persistPrintJobsToDisk();
+  await appendPrintEvent('print_job_retry_manual', { jobId });
   void processPrintQueue();
   return res.json(job);
 });
@@ -1236,7 +1307,9 @@ app.post('/api/print-jobs/:id/cancel', requireInternalApiKey, async (req, res) =
   job.updatedAt = job.finishedAt;
 
   printJobs.set(jobId, job);
+  recomputePrintMetrics();
   await persistPrintJobsToDisk();
+  await appendPrintEvent('print_job_cancelled', { jobId });
 
   return res.json(job);
 });
@@ -1249,6 +1322,15 @@ app.get('/health/printer', (_req, res) => {
     queueLength: printQueue.length,
     workerRunning: isPrintWorkerRunning,
     printerName: PRINT_PRINTER_NAME || null,
+    metrics: {
+      totalQueued: printMetrics.totalQueued,
+      totalDone: printMetrics.totalDone,
+      totalFailed: printMetrics.totalFailed,
+      totalCancelled: printMetrics.totalCancelled,
+      lastSuccessAt: printMetrics.lastSuccessAt || null,
+      lastFailureAt: printMetrics.lastFailureAt || null,
+      lastError: printMetrics.lastError || null,
+    },
   });
 });
 
@@ -1312,9 +1394,14 @@ async function start() {
   await loadSessionsFromDisk();
   await loadPrintJobsFromDisk();
   await cleanupExpiredResults();
+  await pruneOldPrintJobs();
 
   setInterval(() => {
     cleanupExpiredResults().catch((error) => console.error('cleanupExpiredResults error:', error.message));
+  }, 60 * 60 * 1000).unref();
+
+  setInterval(() => {
+    pruneOldPrintJobs().catch((error) => console.error('pruneOldPrintJobs error:', error.message));
   }, 60 * 60 * 1000).unref();
 
   if (printQueue.length > 0) {

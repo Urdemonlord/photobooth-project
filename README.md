@@ -51,8 +51,10 @@ Lalu buka `http://localhost:3000`.
 - Print queue endpoint tersedia via `/api/print-jobs`; konfigurasi printer via `PRINT_*` env.
 - Print job sekarang persisten di `data/print-jobs.json` + resume queue saat restart.
 - Retry cetak otomatis via `PRINT_MAX_RETRIES` (default 2).
+- Auto-prune job cetak lama via `PRINT_JOB_RETENTION_HOURS` (default 168 jam / 7 hari).
+- Log event print tersimpan di `data/print-events.log` (JSONL).
 - Lock anti double-print per `orderId` (bisa override dengan `force: true`).
-- Health printer tersedia di `GET /health/printer`.
+- Health printer tersedia di `GET /health/printer` (termasuk metrik `totalDone/totalFailed/lastError`).
 
 ## Catatan
 
