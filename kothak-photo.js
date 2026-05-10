@@ -82,6 +82,18 @@
   let defaultPaymentQrMarkup = '';
   let defaultDownloadQrMarkup = '';
 
+  function initPackagePricesFromStorage() {
+    try {
+      const raw = window.localStorage?.getItem(PACKAGE_PRICES_STORAGE_KEY);
+      const parsed = raw ? JSON.parse(raw) : null;
+      if (!parsed || typeof parsed !== 'object') return;
+      state.packagePrices = {
+        ...state.packagePrices,
+        ...Object.fromEntries(Object.entries(parsed).map(([k, v]) => [k, Number(v) || 0])),
+      };
+    } catch {}
+  }
+
   // ── DOM Helpers ──
   const $ = (sel, ctx = document) => ctx.querySelector(sel);
   const $$ = (sel, ctx = document) => [...ctx.querySelectorAll(sel)];
@@ -108,6 +120,7 @@
 
   const PRINT_SIZE_STORAGE_KEY = 'kothak-print-size';
   const OPERATOR_QUEUE_STORAGE_KEY = 'kothak-operator-queue';
+  const PACKAGE_PRICES_STORAGE_KEY = 'kothak-package-prices';
   const PRINT_SIZE_PRESETS = {
     '2x6': { widthMm: 50.8, heightMm: 152.4 },
     '4x6': { widthMm: 101.6, heightMm: 152.4 },
@@ -634,6 +647,21 @@
   // ── Landing ──
   function initLanding() {
     $('#btn-start').addEventListener('click', () => goToScreen('screen-package'));
+
+    const logo = $('.brand-logo');
+    if (logo) {
+      let tapCount = 0;
+      let tapTimer = null;
+      logo.addEventListener('click', () => {
+        tapCount += 1;
+        clearTimeout(tapTimer);
+        tapTimer = setTimeout(() => { tapCount = 0; }, 2500);
+        if (tapCount >= 5) {
+          tapCount = 0;
+          window.location.href = 'operator-dashboard.html';
+        }
+      });
+    }
   }
 
   // ── Package Selection ──
@@ -2176,6 +2204,7 @@
 
   // ── Bootstrap ──
   function init() {
+    initPackagePricesFromStorage();
     initPrintSizeFromStorage();
     initNavigation();
     initLanding();

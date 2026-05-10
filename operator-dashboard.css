@@ -49,6 +49,7 @@ h1, h2, h3 { margin: .15rem 0; font-family: 'Plus Jakarta Sans', sans-serif; }
 .pin-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; margin: 10px 0; }
 
 input,
+select,
 textarea {
   min-height: 42px;
   border-radius: 10px;
@@ -56,15 +57,6 @@ textarea {
   background: #071325;
   color: var(--text);
   padding: 10px 12px;
-}
-
-textarea.code-input {
-  width: 100%;
-  min-height: 220px;
-  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
-  font-size: 12px;
-  line-height: 1.45;
-  resize: vertical;
 }
 
 .actions { display: flex; gap: 8px; flex-wrap: wrap; }
@@ -89,6 +81,10 @@ textarea.code-input {
 
 .pill { padding: 4px 10px; border: 1px solid var(--line); border-radius: 999px; font-size: .78rem; color: var(--muted); }
 .helper { color: var(--muted); font-size: .9rem; margin: 8px 0; }
+.section-subhead { margin: 10px 0 6px; color: var(--muted); font-size: .86rem; }
+.check-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: 6px; }
+.check-item { display: inline-flex; align-items: center; gap: 6px; font-size: .86rem; color: var(--text); }
+.check-item input { min-height: auto; }
 
 .queue-list { display: grid; gap: 8px; max-height: 50vh; overflow: auto; margin-top: 10px; }
 .queue-item { border: 1px solid var(--line); border-radius: 10px; padding: 8px; background: rgba(0,0,0,.14); }

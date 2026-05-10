@@ -59,11 +59,21 @@
       <div class="section-head">
         <h2>Pengaturan Paket</h2>
       </div>
-      <p class="helper">Edit rule paket (JSON). Klik simpan untuk apply ke kiosk.</p>
-      <textarea id="package-rules-json" class="code-input" spellcheck="false"></textarea>
+      <div class="pin-grid">
+        <select id="package-select"></select>
+        <input id="pkg-capture" type="number" min="10" step="5" placeholder="Durasi foto (detik)" />
+      </div>
+      <div class="pin-grid">
+        <input id="pkg-print-copies" type="number" min="1" step="1" placeholder="Jumlah copy print" />
+        <input id="pkg-price" type="number" min="0" step="1000" placeholder="Harga paket (Rp)" />
+      </div>
+      <div class="section-subhead">Frame yang diizinkan</div>
+      <div id="pkg-frames" class="check-grid"></div>
+      <div class="section-subhead">Filter yang diizinkan</div>
+      <div id="pkg-filters" class="check-grid"></div>
       <div class="actions">
-        <button id="btn-package-save" class="btn primary" type="button">Simpan Pengaturan Paket</button>
-        <button id="btn-package-reset" class="btn" type="button">Reset Default</button>
+        <button id="btn-package-save" class="btn primary" type="button">Simpan Paket Terpilih</button>
+        <button id="btn-package-reset" class="btn" type="button">Reset Semua ke Default</button>
       </div>
     </section>
 

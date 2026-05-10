@@ -3,10 +3,8 @@
 
   const OPERATOR_PIN_STORAGE_KEY = 'kothak-operator-pin';
   const OPERATOR_QUEUE_STORAGE_KEY = 'kothak-operator-queue';
-  const OPERATOR_DASH_AUTH_TS_KEY = 'kothak-operator-dashboard-auth-ts';
   const PACKAGE_RULES_STORAGE_KEY = 'kothak-package-rules';
   const PRINT_SIZE_STORAGE_KEY = 'kothak-print-size';
-  const DASH_AUTH_TTL_MS = 12 * 60 * 60 * 1000;
 
   const PRINT_SIZE_PRESETS = {
     '2x6': { widthMm: 50.8, heightMm: 152.4 },
@@ -14,14 +12,18 @@
     '2x3': { widthMm: 50.8, heightMm: 76.2 },
   };
 
+  const FRAME_OPTIONS = ['birthday', 'friends', 'newspaper', 'filmstrip', 'fish', 'moments-friends', 'live-moment', 'picture-perfect'];
+  const FILTER_OPTIONS = ['original', 'bw', 'vintage', 'warm', 'cool', 'softglow', 'film', 'natural', 'dramatic', 'pastel', 'retro'];
+  const PRICE_STORAGE_KEY = 'kothak-package-prices';
+
   const $ = (s, c = document) => c.querySelector(s);
+
+  let gateUnlocked = false;
 
   function readPin() {
     const fromStorage = window.localStorage?.getItem(OPERATOR_PIN_STORAGE_KEY);
     if (fromStorage && String(fromStorage).trim()) return String(fromStorage).trim();
-    const fromConfig = typeof window.KothakConfig?.getOperatorPin === 'function'
-      ? window.KothakConfig.getOperatorPin()
-      : '';
+    const fromConfig = typeof window.KothakConfig?.getOperatorPin === 'function' ? window.KothakConfig.getOperatorPin() : '';
     return String(fromConfig || '').trim();
   }
 
@@ -30,18 +32,14 @@
       const raw = window.localStorage?.getItem(OPERATOR_QUEUE_STORAGE_KEY);
       const parsed = raw ? JSON.parse(raw) : [];
       return Array.isArray(parsed) ? parsed : [];
-    } catch {
-      return [];
-    }
+    } catch { return []; }
   }
 
   function writeQueue(items) {
     window.localStorage?.setItem(OPERATOR_QUEUE_STORAGE_KEY, JSON.stringify(items || []));
   }
 
-  function formatRp(amount) {
-    return `Rp ${Number(amount || 0).toLocaleString('id-ID')}`;
-  }
+  function formatRp(amount) { return `Rp ${Number(amount || 0).toLocaleString('id-ID')}`; }
 
   function renderStats(queue) {
     $('#stat-total').textContent = String(queue.length);
@@ -53,32 +51,24 @@
     const list = $('#queue-list');
     const queue = readQueue();
     renderStats(queue);
-
     if (!queue.length) {
       list.innerHTML = '<p class="empty">Belum ada antrian paket.</p>';
       return;
     }
-
-    list.innerHTML = queue.slice(0, 200).map((item, idx) => {
-      const label = item.packageLabel || item.packageKey || '-';
-      const statusText = item.status === 'done' ? 'DONE' : 'IN-SESSION';
-      const paidClass = item.paidAt ? 'ok' : '';
-      const printedClass = item.printedAt ? 'ok' : '';
-      return `
-        <div class="queue-item">
-          <div class="queue-row"><strong>${label}</strong><strong>${formatRp(item.amount)}</strong></div>
-          <div class="meta">${item.atLabel || '-'} • ${statusText} • ${item.id || '-'}</div>
-          <div class="badges">
-            <span class="mini-pill ${paidClass}">Paid: ${item.paidAt ? 'Yes' : 'No'}</span>
-            <span class="mini-pill ${printedClass}">Printed: ${item.printedAt ? 'Yes' : 'No'}</span>
-          </div>
-          <div class="actions queue-actions">
-            <button class="btn" data-action="toggle-paid" data-index="${idx}" type="button">${item.paidAt ? 'Unmark Paid' : 'Mark Paid'}</button>
-            <button class="btn" data-action="toggle-printed" data-index="${idx}" type="button">${item.printedAt ? 'Unmark Printed' : 'Mark Printed'}</button>
-          </div>
+    list.innerHTML = queue.slice(0, 200).map((item, idx) => `
+      <div class="queue-item">
+        <div class="queue-row"><strong>${item.packageLabel || item.packageKey || '-'}</strong><strong>${formatRp(item.amount)}</strong></div>
+        <div class="meta">${item.atLabel || '-'} • ${item.status === 'done' ? 'DONE' : 'IN-SESSION'} • ${item.id || '-'}</div>
+        <div class="badges">
+          <span class="mini-pill ${item.paidAt ? 'ok' : ''}">Paid: ${item.paidAt ? 'Yes' : 'No'}</span>
+          <span class="mini-pill ${item.printedAt ? 'ok' : ''}">Printed: ${item.printedAt ? 'Yes' : 'No'}</span>
         </div>
-      `;
-    }).join('');
+        <div class="actions queue-actions">
+          <button class="btn" data-action="toggle-paid" data-index="${idx}" type="button">${item.paidAt ? 'Unmark Paid' : 'Mark Paid'}</button>
+          <button class="btn" data-action="toggle-printed" data-index="${idx}" type="button">${item.printedAt ? 'Unmark Printed' : 'Mark Printed'}</button>
+        </div>
+      </div>
+    `).join('');
   }
 
   function setQueueFlag(index, field) {
@@ -90,23 +80,10 @@
     renderQueue();
   }
 
-  function renderPinStatus() {
-    const pin = readPin();
-    $('#pin-status').textContent = pin ? 'Aktif' : 'Tidak aktif';
-  }
-
-  function isGateAuthed() {
-    const ts = Number(window.sessionStorage?.getItem(OPERATOR_DASH_AUTH_TS_KEY) || 0);
-    return ts > 0 && (Date.now() - ts) < DASH_AUTH_TTL_MS;
-  }
-
-  function setGateAuthed() {
-    window.sessionStorage?.setItem(OPERATOR_DASH_AUTH_TS_KEY, String(Date.now()));
-  }
+  function renderPinStatus() { $('#pin-status').textContent = readPin() ? 'Aktif' : 'Tidak aktif'; }
 
   function showGate(show) {
     const gate = $('#pin-gate');
-    if (!gate) return;
     gate.classList.toggle('hidden', !show);
     gate.setAttribute('aria-hidden', show ? 'false' : 'true');
   }
@@ -117,12 +94,9 @@
     const error = $('#pin-gate-error');
     const btnUnlock = $('#btn-pin-unlock');
 
-    if (!pin) {
-      showGate(false);
-      return;
-    }
+    gateUnlocked = false;
 
-    if (isGateAuthed()) {
+    if (!pin) {
       showGate(false);
       return;
     }
@@ -130,50 +104,108 @@
     showGate(true);
 
     const unlock = () => {
-      const val = String(input.value || '').trim();
-      if (val !== pin) {
+      if (String(input.value || '').trim() !== pin) {
         error.textContent = 'PIN salah';
         return;
       }
-      setGateAuthed();
+      gateUnlocked = true;
       showGate(false);
       error.textContent = '';
       input.value = '';
     };
 
     btnUnlock.onclick = unlock;
-    input.onkeydown = (e) => {
-      if (e.key === 'Enter') unlock();
-    };
+    input.onkeydown = (e) => { if (e.key === 'Enter') unlock(); };
   }
 
-  function renderPackageRulesEditor() {
-    const el = $('#package-rules-json');
-    const currentRules = typeof window.KothakConfig?.getPackageRules === 'function'
-      ? window.KothakConfig.getPackageRules()
-      : (window.KothakConfig?.DEFAULT_PACKAGE_RULES || {});
-    el.value = JSON.stringify(currentRules, null, 2);
+  function getCurrentRules() {
+    if (typeof window.KothakConfig?.getPackageRules === 'function') return window.KothakConfig.getPackageRules();
+    return window.KothakConfig?.DEFAULT_PACKAGE_RULES || {};
   }
 
-  function setupPackageRulesActions() {
+  function readPackagePrices() {
+    try {
+      const raw = window.localStorage?.getItem(PRICE_STORAGE_KEY);
+      const parsed = raw ? JSON.parse(raw) : null;
+      if (parsed && typeof parsed === 'object') return parsed;
+    } catch {}
+    return { single: 15000, bestie: 25000, couple: 30000, signature: 35000 };
+  }
+
+  function writePackagePrices(prices) {
+    window.localStorage?.setItem(PRICE_STORAGE_KEY, JSON.stringify(prices));
+  }
+
+  function renderChecks(container, values, selected, includeAll = false) {
+    const selectedSet = selected === 'all' ? new Set(values) : new Set(Array.isArray(selected) ? selected : []);
+    const allBlock = includeAll ? `<label class="check-item"><input type="checkbox" value="__all__" ${selected === 'all' ? 'checked' : ''}/> Semua</label>` : '';
+    container.innerHTML = allBlock + values.map((v) => `<label class="check-item"><input type="checkbox" value="${v}" ${selectedSet.has(v) ? 'checked' : ''}/> ${v}</label>`).join('');
+  }
+
+  function loadPackageToForm(pkgKey) {
+    const rules = getCurrentRules();
+    const prices = readPackagePrices();
+    const rule = rules[pkgKey] || {};
+    $('#pkg-capture').value = String(rule.captureTimeSeconds || 60);
+    $('#pkg-print-copies').value = String(rule.printCopies || 1);
+    $('#pkg-price').value = String(prices[pkgKey] || 0);
+    renderChecks($('#pkg-frames'), FRAME_OPTIONS, rule.allowedFrames || [], true);
+    renderChecks($('#pkg-filters'), FILTER_OPTIONS, rule.allowedFilters || [], false);
+  }
+
+  function initPackageEditor() {
+    const select = $('#package-select');
+    const rules = getCurrentRules();
+    const pkgKeys = Object.keys(rules);
+    select.innerHTML = pkgKeys.map((k) => `<option value="${k}">${k}</option>`).join('');
+    if (!select.value && pkgKeys[0]) select.value = pkgKeys[0];
+    loadPackageToForm(select.value);
+
+    select.addEventListener('change', () => loadPackageToForm(select.value));
+
     $('#btn-package-save').addEventListener('click', () => {
-      const txt = String($('#package-rules-json').value || '').trim();
-      try {
-        const parsed = JSON.parse(txt);
-        if (!parsed || typeof parsed !== 'object' || Array.isArray(parsed)) {
-          alert('Format JSON harus object');
-          return;
-        }
-        if (typeof window.KothakConfig?.setPackageRulesOverride === 'function') {
-          window.KothakConfig.setPackageRulesOverride(parsed);
-        } else {
-          window.localStorage?.setItem(PACKAGE_RULES_STORAGE_KEY, JSON.stringify(parsed));
-        }
-        renderPackageRulesEditor();
-        alert('Pengaturan paket tersimpan. Reload kiosk untuk apply.');
-      } catch {
-        alert('JSON tidak valid');
+      const pkgKey = select.value;
+      const allRules = getCurrentRules();
+      const prices = readPackagePrices();
+
+      const capture = Number($('#pkg-capture').value);
+      const copies = Number($('#pkg-print-copies').value);
+      const price = Number($('#pkg-price').value);
+      if (!(capture >= 10 && copies >= 1 && price >= 0)) {
+        alert('Isi durasi/copy/harga dengan benar');
+        return;
       }
+
+      const frameChecked = Array.from(document.querySelectorAll('#pkg-frames input:checked')).map((i) => i.value);
+      const filterChecked = Array.from(document.querySelectorAll('#pkg-filters input:checked')).map((i) => i.value);
+      if (!filterChecked.length) {
+        alert('Minimal pilih 1 filter');
+        return;
+      }
+
+      const allowedFrames = frameChecked.includes('__all__') ? 'all' : frameChecked.filter((v) => v !== '__all__');
+      if (allowedFrames !== 'all' && !allowedFrames.length) {
+        alert('Minimal pilih 1 frame atau pilih Semua');
+        return;
+      }
+
+      allRules[pkgKey] = {
+        ...(allRules[pkgKey] || {}),
+        captureTimeSeconds: capture,
+        printCopies: copies,
+        allowedFrames,
+        allowedFilters: filterChecked,
+      };
+
+      prices[pkgKey] = price;
+
+      if (typeof window.KothakConfig?.setPackageRulesOverride === 'function') {
+        window.KothakConfig.setPackageRulesOverride(allRules);
+      } else {
+        window.localStorage?.setItem(PACKAGE_RULES_STORAGE_KEY, JSON.stringify(allRules));
+      }
+      writePackagePrices(prices);
+      alert('Pengaturan paket tersimpan');
     });
 
     $('#btn-package-reset').addEventListener('click', () => {
@@ -182,8 +214,9 @@
       } else {
         window.localStorage?.removeItem(PACKAGE_RULES_STORAGE_KEY);
       }
-      renderPackageRulesEditor();
-      alert('Pengaturan paket kembali ke default');
+      window.localStorage?.removeItem(PRICE_STORAGE_KEY);
+      initPackageEditor();
+      alert('Semua paket direset ke default');
     });
   }
 
@@ -222,10 +255,7 @@
     $('#btn-print-save').addEventListener('click', () => {
       const w = Number($('#print-width').value);
       const h = Number($('#print-height').value);
-      if (!(w >= 20 && h >= 20)) {
-        alert('Ukuran minimal 20mm x 20mm');
-        return;
-      }
+      if (!(w >= 20 && h >= 20)) return alert('Ukuran minimal 20mm x 20mm');
       savePrintSize(w, h);
       alert('Ukuran print tersimpan');
     });
@@ -240,46 +270,29 @@
   function init() {
     renderPinStatus();
     renderQueue();
-    renderPackageRulesEditor();
     renderPrintInputs();
     setupPinGate();
-    setupPackageRulesActions();
+    initPackageEditor();
     setupPrintActions();
 
     $('#btn-refresh').addEventListener('click', renderQueue);
-
-    $('#btn-clear-queue').addEventListener('click', () => {
-      writeQueue([]);
-      renderQueue();
-    });
+    $('#btn-clear-queue').addEventListener('click', () => { writeQueue([]); renderQueue(); });
 
     $('#queue-list').addEventListener('click', (e) => {
       const btn = e.target.closest('button[data-action]');
       if (!btn) return;
       const index = Number(btn.dataset.index);
       if (!Number.isInteger(index) || index < 0) return;
-
-      if (btn.dataset.action === 'toggle-paid') {
-        setQueueFlag(index, 'paidAt');
-      }
-      if (btn.dataset.action === 'toggle-printed') {
-        setQueueFlag(index, 'printedAt');
-      }
+      if (btn.dataset.action === 'toggle-paid') setQueueFlag(index, 'paidAt');
+      if (btn.dataset.action === 'toggle-printed') setQueueFlag(index, 'printedAt');
     });
 
     $('#btn-pin-save').addEventListener('click', () => {
       const pinNew = String($('#pin-new').value || '').trim();
       const pinConfirm = String($('#pin-confirm').value || '').trim();
-      if (!/^\d{4,}$/.test(pinNew)) {
-        alert('PIN minimal 4 digit angka');
-        return;
-      }
-      if (pinNew !== pinConfirm) {
-        alert('Konfirmasi PIN tidak sama');
-        return;
-      }
+      if (!/^\d{4,}$/.test(pinNew)) return alert('PIN minimal 4 digit angka');
+      if (pinNew !== pinConfirm) return alert('Konfirmasi PIN tidak sama');
       window.localStorage?.setItem(OPERATOR_PIN_STORAGE_KEY, pinNew);
-      setGateAuthed();
       $('#pin-new').value = '';
       $('#pin-confirm').value = '';
       renderPinStatus();
@@ -289,7 +302,6 @@
 
     $('#btn-pin-clear').addEventListener('click', () => {
       window.localStorage?.removeItem(OPERATOR_PIN_STORAGE_KEY);
-      setGateAuthed();
       renderPinStatus();
       setupPinGate();
       alert('PIN operator dihapus');
