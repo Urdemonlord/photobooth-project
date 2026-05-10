@@ -177,8 +177,8 @@ function getBaseUrl(req) {
 
 function getPublicResultDirectUrl(req, fileName = '') {
   if (!fileName) return '';
-  if (PUBLIC_RESULTS_BASE_URL) return `${PUBLIC_RESULTS_BASE_URL}/${encodeURIComponent(fileName)}`;
-  return `${getBaseUrl(req)}/data/results/${encodeURIComponent(fileName)}`;
+  if (!PUBLIC_RESULTS_BASE_URL) return '';
+  return `${PUBLIC_RESULTS_BASE_URL}/${encodeURIComponent(fileName)}`;
 }
 
 async function ensureDirectories() {
