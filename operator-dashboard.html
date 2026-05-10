@@ -54,6 +54,37 @@
       </div>
       <div id="queue-list" class="queue-list"></div>
     </section>
+
+    <section class="card section">
+      <div class="section-head">
+        <h2>Pengaturan Paket</h2>
+      </div>
+      <p class="helper">Edit rule paket (JSON). Klik simpan untuk apply ke kiosk.</p>
+      <textarea id="package-rules-json" class="code-input" spellcheck="false"></textarea>
+      <div class="actions">
+        <button id="btn-package-save" class="btn primary" type="button">Simpan Pengaturan Paket</button>
+        <button id="btn-package-reset" class="btn" type="button">Reset Default</button>
+      </div>
+    </section>
+
+    <section class="card section">
+      <div class="section-head">
+        <h2>Ukuran Print</h2>
+      </div>
+      <div class="print-grid">
+        <button class="btn" data-print-preset="2x6" type="button">2x6 Strip</button>
+        <button class="btn" data-print-preset="4x6" type="button">4x6</button>
+        <button class="btn" data-print-preset="2x3" type="button">2x3</button>
+      </div>
+      <div class="pin-grid">
+        <input id="print-width" type="number" min="20" step="0.1" placeholder="Lebar (mm)" />
+        <input id="print-height" type="number" min="20" step="0.1" placeholder="Tinggi (mm)" />
+      </div>
+      <div class="actions">
+        <button id="btn-print-save" class="btn primary" type="button">Simpan Ukuran Print</button>
+        <button id="btn-print-reset" class="btn" type="button">Reset 2x6</button>
+      </div>
+    </section>
   </main>
 
   <div id="pin-gate" class="pin-gate hidden" aria-hidden="true">
