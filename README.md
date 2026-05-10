@@ -53,6 +53,7 @@ Lalu buka `http://localhost:3000`.
 - Retry cetak otomatis via `PRINT_MAX_RETRIES` (default 2).
 - Auto-prune job cetak lama via `PRINT_JOB_RETENTION_HOURS` (default 168 jam / 7 hari).
 - Log event print tersimpan di `data/print-events.log` (JSONL).
+- Dashboard operator `/admin/print-jobs` bisa diproteksi Basic Auth via `ADMIN_DASHBOARD_USER` + `ADMIN_DASHBOARD_PASSWORD`.
 - Lock anti double-print per `orderId` (bisa override dengan `force: true`).
 - Health printer tersedia di `GET /health/printer` (termasuk metrik `totalDone/totalFailed/lastError`).
 

@@ -30,6 +30,8 @@ const PRINT_TIMEOUT_MS = Number(process.env.PRINT_TIMEOUT_MS || 30000);
 const PRINT_MAX_RETRIES = Number(process.env.PRINT_MAX_RETRIES || 2);
 const PRINT_JOB_RETENTION_HOURS = Number(process.env.PRINT_JOB_RETENTION_HOURS || 168);
 const PRINT_LOG_PATH = path.join(DATA_DIR, 'print-events.log');
+const ADMIN_DASHBOARD_USER = process.env.ADMIN_DASHBOARD_USER || 'operator';
+const ADMIN_DASHBOARD_PASSWORD = process.env.ADMIN_DASHBOARD_PASSWORD || '';
 const CORS_ORIGINS = String(process.env.CORS_ORIGINS || '').split(',').map((item) => item.trim()).filter(Boolean);
 const PORT = Number(process.env.PORT || 3000);
 const paymentSessions = new Map();
@@ -90,6 +92,37 @@ function requireInternalApiKey(req, res, next) {
 
   if (!candidate || candidate !== INTERNAL_API_KEY) {
     return res.status(401).json({ error: 'Unauthorized' });
+  }
+
+  return next();
+}
+
+function requireAdminDashboardAuth(req, res, next) {
+  if (!ADMIN_DASHBOARD_PASSWORD) {
+    return next();
+  }
+
+  const authHeader = String(req.headers.authorization || '');
+  if (!authHeader.startsWith('Basic ')) {
+    res.setHeader('WWW-Authenticate', 'Basic realm="Photobooth Operator"');
+    return res.status(401).send('Authentication required');
+  }
+
+  let decoded = '';
+  try {
+    decoded = Buffer.from(authHeader.slice(6), 'base64').toString('utf8');
+  } catch {
+    res.setHeader('WWW-Authenticate', 'Basic realm="Photobooth Operator"');
+    return res.status(401).send('Invalid auth header');
+  }
+
+  const sepIndex = decoded.indexOf(':');
+  const username = sepIndex >= 0 ? decoded.slice(0, sepIndex) : '';
+  const password = sepIndex >= 0 ? decoded.slice(sepIndex + 1) : '';
+
+  if (username !== ADMIN_DASHBOARD_USER || password !== ADMIN_DASHBOARD_PASSWORD) {
+    res.setHeader('WWW-Authenticate', 'Basic realm="Photobooth Operator"');
+    return res.status(401).send('Invalid credentials');
   }
 
   return next();
@@ -857,7 +890,7 @@ app.get('/health', (_req, res) => {
   res.json({ ok: true });
 });
 
-app.get('/admin/print-jobs', (_req, res) => {
+app.get('/admin/print-jobs', requireAdminDashboardAuth, (_req, res) => {
   res.type('html').send(`<!doctype html>
 <html lang="id">
 <head>
