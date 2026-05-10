@@ -62,6 +62,7 @@ Lalu buka `http://localhost:3000`.
 - QRIS akan aktif jika env Pakasir sudah terisi.
 - Tombol cetak memakai dialog print browser.
 - Ukuran print browser disetel ke strip photobooth default **2x6 inch** (`--print-strip-width-mm: 50.8`, `--print-strip-height-mm: 152.4` di `kothak-photo.css`) supaya output tidak terlalu besar.
+- Dari panel **Atur Paket**, operator bisa pilih preset ukuran print (**2x6 / 4x6 / 2x3**) atau custom mm, lalu simpan (persist di `localStorage`).
 - Fitur sekarang mengikuti paket:
   - Reguler: frame terbatas + filter basic.
   - Premium: 3 frame pilihan + semua filter.

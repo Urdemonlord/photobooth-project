@@ -555,6 +555,21 @@
           <button class="btn-outline btn-preset" type="button" data-preset="group">Preset Group</button>
         </div>
 
+        <div class="package-settings-print">
+          <h4>Ukuran Print</h4>
+          <div class="package-settings-print-row">
+            <select id="select-print-size">
+              <option value="2x6">2x6 inch (strip photobooth)</option>
+              <option value="4x6">4x6 inch</option>
+              <option value="2x3">2x3 inch</option>
+              <option value="custom">Custom (mm)</option>
+            </select>
+            <input id="input-print-width-mm" type="number" min="20" step="0.1" placeholder="Lebar (mm)" />
+            <input id="input-print-height-mm" type="number" min="20" step="0.1" placeholder="Tinggi (mm)" />
+            <button id="btn-print-size-save" class="btn-outline" type="button">Simpan Ukuran</button>
+          </div>
+        </div>
+
         <div class="package-settings-pin">
           <h4>PIN Operator</h4>
           <div class="package-settings-pin-row">

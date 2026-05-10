@@ -2119,6 +2119,33 @@ h1, h2, h3, h4 {
   font-size: 0.82rem;
 }
 
+.package-settings-print {
+  margin-top: 0.9rem;
+  border: 1px solid rgba(255,255,255,0.1);
+  border-radius: 10px;
+  padding: 0.7rem;
+}
+
+.package-settings-print h4 {
+  margin-bottom: 0.5rem;
+}
+
+.package-settings-print-row {
+  display: grid;
+  grid-template-columns: 1.4fr 1fr 1fr auto;
+  gap: 0.5rem;
+}
+
+.package-settings-print-row select,
+.package-settings-print-row input {
+  min-height: 38px;
+  border-radius: 8px;
+  border: 1px solid rgba(255,255,255,0.14);
+  background: rgba(7, 19, 37, 0.9);
+  color: var(--on-surface);
+  padding: 0.4rem 0.55rem;
+}
+
 .package-settings-pin {
   margin-top: 0.9rem;
   border: 1px solid rgba(255,255,255,0.1);
@@ -2172,6 +2199,10 @@ h1, h2, h3, h4 {
   }
 
   .package-settings-pin-row {
+    grid-template-columns: 1fr;
+  }
+
+  .package-settings-print-row {
     grid-template-columns: 1fr;
   }
 }

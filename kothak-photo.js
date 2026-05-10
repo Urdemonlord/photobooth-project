@@ -99,6 +99,30 @@
 
   let operatorPin = loadOperatorPin();
 
+  const PRINT_SIZE_STORAGE_KEY = 'kothak-print-size';
+  const PRINT_SIZE_PRESETS = {
+    '2x6': { widthMm: 50.8, heightMm: 152.4 },
+    '4x6': { widthMm: 101.6, heightMm: 152.4 },
+    '2x3': { widthMm: 50.8, heightMm: 76.2 },
+  };
+
+  function applyPrintSize(widthMm, heightMm) {
+    const root = document.documentElement;
+    root.style.setProperty('--print-strip-width-mm', String(widthMm));
+    root.style.setProperty('--print-strip-height-mm', String(heightMm));
+  }
+
+  function initPrintSizeFromStorage() {
+    const raw = window.localStorage?.getItem(PRINT_SIZE_STORAGE_KEY);
+    if (!raw) return;
+    try {
+      const parsed = JSON.parse(raw);
+      const w = Number(parsed?.widthMm);
+      const h = Number(parsed?.heightMm);
+      if (w >= 20 && h >= 20) applyPrintSize(w, h);
+    } catch {}
+  }
+
 
   async function apiFetchJson(path, options = {}) {
     let lastError = null;
@@ -338,6 +362,10 @@
     const inputPinConfirm = $('#input-operator-pin-confirm');
     const btnPinSave = $('#btn-operator-pin-save');
     const btnPinClear = $('#btn-operator-pin-clear');
+    const selectPrintSize = $('#select-print-size');
+    const inputPrintWidth = $('#input-print-width-mm');
+    const inputPrintHeight = $('#input-print-height-mm');
+    const btnPrintSizeSave = $('#btn-print-size-save');
     if (!btnOpen || !modal || !btnClose || !btnSave || !btnReset || !listEl) return;
 
     const frameOptions = $$('.frame-card').map((el) => el.dataset.frame).filter(Boolean);
@@ -379,6 +407,22 @@
     const openModal = () => {
       if (!requestOperatorAccess()) return;
       renderEditor();
+
+      try {
+        const raw = window.localStorage?.getItem(PRINT_SIZE_STORAGE_KEY);
+        const parsed = raw ? JSON.parse(raw) : null;
+        const widthMm = Number(parsed?.widthMm || 50.8);
+        const heightMm = Number(parsed?.heightMm || 152.4);
+        if (inputPrintWidth) inputPrintWidth.value = String(widthMm);
+        if (inputPrintHeight) inputPrintHeight.value = String(heightMm);
+
+        const matchedPreset = Object.entries(PRINT_SIZE_PRESETS)
+          .find(([, v]) => Number(v.widthMm) === Number(widthMm) && Number(v.heightMm) === Number(heightMm));
+        if (selectPrintSize) selectPrintSize.value = matchedPreset ? matchedPreset[0] : 'custom';
+      } catch {
+        if (selectPrintSize) selectPrintSize.value = '2x6';
+      }
+
       modal.classList.remove('hidden');
       modal.setAttribute('aria-hidden', 'false');
     };
@@ -400,6 +444,26 @@
         if (!presetKey) return;
         applyPreset(presetKey);
       });
+    });
+
+    selectPrintSize?.addEventListener('change', () => {
+      const preset = PRINT_SIZE_PRESETS[selectPrintSize.value];
+      if (!preset) return;
+      if (inputPrintWidth) inputPrintWidth.value = String(preset.widthMm);
+      if (inputPrintHeight) inputPrintHeight.value = String(preset.heightMm);
+    });
+
+    btnPrintSizeSave?.addEventListener('click', () => {
+      const widthMm = Number(inputPrintWidth?.value || 0);
+      const heightMm = Number(inputPrintHeight?.value || 0);
+      if (!(widthMm >= 20 && heightMm >= 20)) {
+        showToast('Ukuran print tidak valid (min 20mm)');
+        return;
+      }
+
+      applyPrintSize(widthMm, heightMm);
+      window.localStorage?.setItem(PRINT_SIZE_STORAGE_KEY, JSON.stringify({ widthMm, heightMm }));
+      showToast(`Ukuran print disimpan: ${widthMm} x ${heightMm} mm`);
     });
 
     btnPinSave?.addEventListener('click', () => {
@@ -1989,6 +2053,7 @@
 
   // ── Bootstrap ──
   function init() {
+    initPrintSizeFromStorage();
     initNavigation();
     initLanding();
     initPackage();
