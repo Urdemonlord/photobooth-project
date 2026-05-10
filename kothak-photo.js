@@ -1188,7 +1188,7 @@
       if (state.currentPhotoIndex >= state.selectedFramePhotos) {
         // All photos taken
         stopPhotoSessionTimer();
-        goToScreen('screen-result');
+        goToScreen('screen-filter');
       } else {
         updateCameraUI();
       }
@@ -1319,7 +1319,7 @@
     });
 
     $('#btn-to-camera').addEventListener('click', () => {
-      goToScreen('screen-camera');
+      goToScreen('screen-result');
     });
   }
 
