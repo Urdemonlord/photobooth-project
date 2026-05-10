@@ -300,6 +300,7 @@
     const btnSave = $('#btn-package-settings-save');
     const btnReset = $('#btn-package-settings-reset');
     const listEl = $('#package-settings-list');
+    const presetsEl = $('#package-settings-presets');
     if (!btnOpen || !modal || !btnClose || !btnSave || !btnReset || !listEl) return;
 
     const frameOptions = $$('.frame-card').map((el) => el.dataset.frame).filter(Boolean);
@@ -325,6 +326,19 @@
       });
     };
 
+    const applyPreset = (presetKey) => {
+      const defaults = cloneObject(KothakConfig.DEFAULT_PACKAGE_RULES || {});
+      const preset = defaults[presetKey];
+      if (!preset) return;
+
+      Object.keys(packageRules || {}).forEach((pkgKey) => {
+        packageRules[pkgKey] = cloneObject(preset);
+      });
+
+      renderEditor();
+      showToast(`Preset ${presetKey} diterapkan`);
+    };
+
     const openModal = () => {
       renderEditor();
       modal.classList.remove('hidden');
@@ -340,6 +354,14 @@
     btnClose.addEventListener('click', closeModal);
     modal.addEventListener('click', (event) => {
       if (event.target === modal) closeModal();
+    });
+
+    $$('.btn-preset', presetsEl || document).forEach((btn) => {
+      btn.addEventListener('click', () => {
+        const presetKey = btn.dataset.preset;
+        if (!presetKey) return;
+        applyPreset(presetKey);
+      });
     });
 
     btnSave.addEventListener('click', () => {
