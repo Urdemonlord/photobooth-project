@@ -4,4 +4,5 @@ data/results/*
 !data/results/.gitkeep
 data/payment-sessions.json
 data/print-jobs.json
+data/print-events.log
 npm-debug.log*

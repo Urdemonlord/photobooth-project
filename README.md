@@ -61,4 +61,9 @@ Lalu buka `http://localhost:3000`.
 
 - QRIS akan aktif jika env Pakasir sudah terisi.
 - Tombol cetak memakai dialog print browser.
+- Fitur sekarang mengikuti paket:
+  - Reguler: frame terbatas + filter basic.
+  - Premium: 3 frame pilihan + semua filter.
+  - Group: semua frame + extra print (`copies: 2`).
+- Di layar kamera ada batas waktu sesi foto per paket (reguler 60s, premium 90s, group 120s).
 - Unduhan hasil foto dibuat dari canvas asli lalu bisa dibagikan lewat tautan share.

@@ -348,6 +348,25 @@ h1, h2, h3, h4 {
 .gold { color: var(--gold) !important; }
 .hidden { display: none !important; }
 
+.package-locked {
+  position: relative;
+  filter: grayscale(0.3);
+}
+
+.package-locked::after {
+  content: 'Terkunci paket';
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  font-size: 0.68rem;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  background: rgba(0, 0, 0, 0.6);
+  color: #ffd36b;
+  padding: 3px 8px;
+  border-radius: 999px;
+}
+
 /* ===================================================
    SCREEN 1: LANDING / IDLE
    =================================================== */
@@ -1407,6 +1426,17 @@ h1, h2, h3, h4 {
 .camera-instruction {
   font-size: 0.9rem;
   color: var(--on-surface-variant);
+}
+
+.camera-session-timer {
+  font-size: 0.85rem;
+  color: var(--gold);
+  font-weight: 700;
+  margin-top: -6px;
+}
+
+.camera-session-timer.danger {
+  color: var(--error);
 }
 
 .viewfinder {

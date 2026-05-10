@@ -6,6 +6,27 @@
   'use strict';
 
   // ── State ──
+  const PACKAGE_RULES = {
+    reguler: {
+      captureTimeSeconds: 60,
+      allowedFrames: ['birthday'],
+      allowedFilters: ['original', 'bw', 'warm'],
+      printCopies: 1,
+    },
+    premium: {
+      captureTimeSeconds: 90,
+      allowedFrames: ['birthday', 'friends', 'picture-perfect'],
+      allowedFilters: ['original', 'bw', 'vintage', 'warm', 'cool', 'dramatic', 'pastel', 'retro'],
+      printCopies: 1,
+    },
+    group: {
+      captureTimeSeconds: 120,
+      allowedFrames: 'all',
+      allowedFilters: ['original', 'bw', 'vintage', 'warm', 'cool', 'dramatic', 'pastel', 'retro'],
+      printCopies: 2,
+    },
+  };
+
   const state = {
     currentScreen: 'screen-landing',
     history: [],
@@ -38,6 +59,8 @@
     printJobId: '',
     printJobStatus: '',
     printPollTimer: null,
+    photoSessionTimer: null,
+    photoSessionSeconds: 0,
   };
 
   let defaultPaymentQrMarkup = '';
@@ -102,6 +125,119 @@
     throw lastError || new Error('API request failed');
   }
 
+  function getPackageRule() {
+    return PACKAGE_RULES[state.selectedPackage] || PACKAGE_RULES.premium;
+  }
+
+  function formatSeconds(totalSeconds) {
+    const sec = Math.max(0, Number(totalSeconds) || 0);
+    const m = Math.floor(sec / 60);
+    const s = sec % 60;
+    return `${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}`;
+  }
+
+  function ensureCameraTimerEl() {
+    const instruction = $('#camera-instruction');
+    if (!instruction) return null;
+    let timerEl = $('#camera-session-timer');
+    if (timerEl) return timerEl;
+
+    timerEl = document.createElement('p');
+    timerEl.id = 'camera-session-timer';
+    timerEl.className = 'camera-session-timer';
+    instruction.insertAdjacentElement('afterend', timerEl);
+    return timerEl;
+  }
+
+  function renderCameraSessionTimer() {
+    const timerEl = ensureCameraTimerEl();
+    if (!timerEl) return;
+    timerEl.textContent = `Sisa waktu sesi foto: ${formatSeconds(state.photoSessionSeconds)}`;
+    timerEl.classList.toggle('danger', state.photoSessionSeconds <= 10);
+  }
+
+  function stopPhotoSessionTimer() {
+    clearInterval(state.photoSessionTimer);
+    state.photoSessionTimer = null;
+  }
+
+  function finishPhotoSessionDueToTimeout() {
+    stopPhotoSessionTimer();
+    if (state.currentScreen !== 'screen-camera') return;
+
+    if (state.photos.length > 0) {
+      showToast('Waktu habis, lanjut ke filter');
+      goToScreen('screen-filter');
+      return;
+    }
+
+    showToast('Waktu habis, silakan pilih frame lagi');
+    goBack();
+  }
+
+  function startPhotoSessionTimer() {
+    stopPhotoSessionTimer();
+    const rule = getPackageRule();
+    state.photoSessionSeconds = Math.max(15, Number(rule.captureTimeSeconds) || 90);
+    renderCameraSessionTimer();
+
+    state.photoSessionTimer = setInterval(() => {
+      if (state.currentScreen !== 'screen-camera') return;
+      state.photoSessionSeconds -= 1;
+      renderCameraSessionTimer();
+      if (state.photoSessionSeconds <= 0) {
+        finishPhotoSessionDueToTimeout();
+      }
+    }, 1000);
+  }
+
+  function applyPackageFeatureVisibility() {
+    const rule = getPackageRule();
+
+    const allowedFrames = rule.allowedFrames === 'all'
+      ? null
+      : new Set(rule.allowedFrames || []);
+
+    $$('.frame-card').forEach((card) => {
+      const frameKey = card.dataset.frame;
+      const allowed = !allowedFrames || allowedFrames.has(frameKey);
+      card.classList.toggle('package-locked', !allowed);
+      card.dataset.locked = allowed ? 'false' : 'true';
+      card.style.opacity = allowed ? '' : '0.45';
+      card.style.pointerEvents = allowed ? '' : 'none';
+    });
+
+    if (allowedFrames && !allowedFrames.has(state.selectedFrame)) {
+      const fallback = (rule.allowedFrames || [])[0];
+      if (fallback) {
+        state.selectedFrame = fallback;
+        const fallbackCard = $(`.frame-card[data-frame="${fallback}"]`);
+        if (fallbackCard) {
+          state.selectedFramePhotos = Number(fallbackCard.dataset.photos || 3);
+        }
+      }
+    }
+
+    $$('.frame-card').forEach((card) => {
+      card.classList.toggle('selected', card.dataset.frame === state.selectedFrame);
+    });
+
+    const allowedFilters = new Set(rule.allowedFilters || []);
+    if (!allowedFilters.has(state.selectedFilter)) {
+      state.selectedFilter = 'original';
+    }
+
+    $$('.filter-chip').forEach((chip) => {
+      const filterKey = chip.dataset.filter;
+      const allowed = allowedFilters.has(filterKey);
+      chip.disabled = !allowed;
+      chip.classList.toggle('package-locked', !allowed);
+      chip.style.opacity = allowed ? '' : '0.45';
+      chip.style.pointerEvents = allowed ? '' : 'none';
+      chip.classList.toggle('active', filterKey === state.selectedFilter);
+    });
+  }
+
   // ── Screen Navigation ──
   function goToScreen(id) {
     const current = $(`#${state.currentScreen}`);
@@ -141,8 +277,12 @@
   function onScreenEnter(id) {
     switch (id) {
       case 'screen-payment': startPaymentTimer(); break;
+      case 'screen-frame': applyPackageFeatureVisibility(); break;
       case 'screen-camera': initCamera(); break;
-      case 'screen-filter': renderFilterPreview(); break;
+      case 'screen-filter':
+        applyPackageFeatureVisibility();
+        renderFilterPreview();
+        break;
       case 'screen-result': initResult(); break;
     }
   }
@@ -158,7 +298,10 @@
         const sandboxBadge = $('#sandbox-badge');
         if (sandboxBadge) sandboxBadge.style.display = 'none';
         break;
-      case 'screen-camera': stopCamera(); break;
+      case 'screen-camera':
+        stopPhotoSessionTimer();
+        stopCamera();
+        break;
       case 'screen-result':
         clearInterval(state.returnTimer);
         clearInterval(state.printPollTimer);
@@ -179,6 +322,7 @@
         $$('.package-card').forEach(c => c.classList.remove('selected'));
         card.classList.add('selected');
         state.selectedPackage = card.dataset.package;
+        applyPackageFeatureVisibility();
         updatePriceSummary();
       });
     });
@@ -660,6 +804,10 @@
     // Frame card selection
     $$('.frame-card').forEach(card => {
       card.addEventListener('click', () => {
+        if (card.dataset.locked === 'true') {
+          showToast('Frame ini tidak tersedia di paket kamu');
+          return;
+        }
         $$('.frame-card').forEach(c => c.classList.remove('selected'));
         card.classList.add('selected');
         state.selectedFrame = card.dataset.frame;
@@ -683,6 +831,7 @@
     state.photos = [];
     state.currentPhotoIndex = 0;
     updateCameraUI();
+    startPhotoSessionTimer();
 
     try {
       const stream = await navigator.mediaDevices.getUserMedia({
@@ -728,6 +877,7 @@
 
       if (state.currentPhotoIndex >= state.selectedFramePhotos) {
         // All photos taken
+        stopPhotoSessionTimer();
         goToScreen('screen-filter');
       } else {
         updateCameraUI();
@@ -1317,12 +1467,13 @@
       return;
     }
 
-    const job = await apiFetchJson('/api/print-jobs', {
+      const job = await apiFetchJson('/api/print-jobs', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
         token: state.resultToken,
         orderId: state.orderId,
+        copies: getPackageRule().printCopies || 1,
       }),
     });
 
@@ -1530,6 +1681,8 @@
     state.printRequested = false;
     state.printJobId = '';
     state.printJobStatus = '';
+    state.photoSessionSeconds = 0;
+    stopPhotoSessionTimer();
 
     // Reset UI
     $$('.voucher-success').forEach(el => el.classList.add('hidden'));
@@ -1544,6 +1697,7 @@
     $$('.frame-card').forEach(card => {
       card.classList.toggle('selected', card.dataset.frame === state.selectedFrame);
     });
+    applyPackageFeatureVisibility();
     renderPaymentQr(null);
     renderDownloadQr(null);
     setPaymentStatus('Siap memulai pembayaran');
@@ -1601,6 +1755,7 @@
     initData();
     initFrame();
     initFilter();
+    applyPackageFeatureVisibility();
     updatePriceSummary();
   }
 
