@@ -3,4 +3,5 @@ node_modules/
 data/results/*
 !data/results/.gitkeep
 data/payment-sessions.json
+data/print-jobs.json
 npm-debug.log*

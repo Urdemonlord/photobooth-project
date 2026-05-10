@@ -13,6 +13,7 @@ const ROOT_DIR = __dirname;
 const DATA_DIR = path.join(ROOT_DIR, 'data');
 const RESULTS_DIR = path.join(DATA_DIR, 'results');
 const SESSIONS_PATH = path.join(DATA_DIR, 'payment-sessions.json');
+const PRINT_JOBS_PATH = path.join(DATA_DIR, 'print-jobs.json');
 const PUBLIC_URL = process.env.PUBLIC_URL || '';
 const PAKASIR_BASE_URL = process.env.PAKASIR_BASE_URL || 'https://app.pakasir.com';
 const PAKASIR_PROJECT = process.env.PAKASIR_PROJECT || process.env.PAKASIR_SLUG || '';
@@ -26,6 +27,7 @@ const PRINT_STRATEGY = String(process.env.PRINT_STRATEGY || 'lp').toLowerCase();
 const PRINT_COMMAND = process.env.PRINT_COMMAND || 'lp';
 const PRINT_PRINTER_NAME = process.env.PRINT_PRINTER_NAME || '';
 const PRINT_TIMEOUT_MS = Number(process.env.PRINT_TIMEOUT_MS || 30000);
+const PRINT_MAX_RETRIES = Number(process.env.PRINT_MAX_RETRIES || 2);
 const CORS_ORIGINS = String(process.env.CORS_ORIGINS || '').split(',').map((item) => item.trim()).filter(Boolean);
 const PORT = Number(process.env.PORT || 3000);
 const paymentSessions = new Map();
@@ -126,6 +128,40 @@ async function loadSessionsFromDisk() {
   for (const [orderId, value] of Object.entries(stored)) {
     if (!orderId || !value || typeof value !== 'object') continue;
     paymentSessions.set(orderId, value);
+  }
+}
+
+async function persistPrintJobsToDisk() {
+  const payload = {
+    jobs: Array.from(printJobs.values()),
+    queue: [...printQueue],
+  };
+  await writeJson(PRINT_JOBS_PATH, payload);
+}
+
+async function loadPrintJobsFromDisk() {
+  const stored = await readJsonIfExists(PRINT_JOBS_PATH);
+  if (!stored || typeof stored !== 'object') return;
+
+  const jobs = Array.isArray(stored.jobs) ? stored.jobs : [];
+  const queue = Array.isArray(stored.queue) ? stored.queue : [];
+
+  for (const job of jobs) {
+    if (!job?.id) continue;
+
+    if (job.status === 'printing' || job.status === 'queued') {
+      job.status = 'queued';
+      job.updatedAt = new Date().toISOString();
+      queue.push(job.id);
+    }
+
+    printJobs.set(job.id, job);
+  }
+
+  for (const id of queue) {
+    if (typeof id !== 'string') continue;
+    if (!printJobs.has(id)) continue;
+    if (!printQueue.includes(id)) printQueue.push(id);
   }
 }
 
@@ -546,23 +582,35 @@ async function processPrintQueue() {
     if (!job) continue;
 
     job.status = 'printing';
-    job.startedAt = new Date().toISOString();
-    job.updatedAt = job.startedAt;
+    job.startedAt = job.startedAt || new Date().toISOString();
+    job.updatedAt = new Date().toISOString();
 
     try {
       const result = await runPrintCommand(job.filePath);
       job.status = 'done';
       job.output = result.stdout;
       job.error = '';
+      job.errorCode = '';
     } catch (error) {
-      job.status = 'failed';
+      job.attempts = Number(job.attempts || 0) + 1;
       job.error = error.message;
       job.errorCode = error.code || '';
+
+      if (job.attempts <= PRINT_MAX_RETRIES) {
+        job.status = 'queued';
+        printQueue.push(job.id);
+      } else {
+        job.status = 'failed';
+      }
     }
 
-    job.finishedAt = new Date().toISOString();
-    job.updatedAt = job.finishedAt;
+    if (job.status === 'done' || job.status === 'failed') {
+      job.finishedAt = new Date().toISOString();
+    }
+
+    job.updatedAt = new Date().toISOString();
     printJobs.set(jobId, job);
+    await persistPrintJobsToDisk();
   }
 
   isPrintWorkerRunning = false;
@@ -887,7 +935,7 @@ app.post('/api/results', requireInternalApiKey, async (req, res) => {
 
 app.post('/api/print-jobs', requireInternalApiKey, async (req, res) => {
   try {
-    const { token, orderId = '', copies = 1, paperSize = 'auto' } = req.body || {};
+    const { token, orderId = '', copies = 1, paperSize = 'auto', force = false } = req.body || {};
     if (!token) {
       return res.status(400).json({ error: 'token is required' });
     }
@@ -897,9 +945,22 @@ app.post('/api/print-jobs', requireInternalApiKey, async (req, res) => {
       return res.status(404).json({ error: 'Result token not found' });
     }
 
-    const existing = Array.from(printJobs.values()).find((job) => job.token === resolved.token && job.status !== 'failed');
-    if (existing) {
-      return res.json(existing);
+    const normalizedOrderId = String(orderId || resolved.record.orderId || '').trim();
+
+    const existingByToken = Array.from(printJobs.values()).find((job) => job.token === resolved.token && job.status !== 'failed');
+    if (existingByToken) {
+      return res.json(existingByToken);
+    }
+
+    if (!force && normalizedOrderId) {
+      const existingByOrder = Array.from(printJobs.values()).find((job) => job.orderId === normalizedOrderId && job.status !== 'failed');
+      if (existingByOrder) {
+        return res.status(409).json({
+          error: 'Print job for this order already exists',
+          existingJobId: existingByOrder.id,
+          status: existingByOrder.status,
+        });
+      }
     }
 
     const jobId = crypto.randomUUID().replace(/-/g, '').slice(0, 16);
@@ -907,11 +968,12 @@ app.post('/api/print-jobs', requireInternalApiKey, async (req, res) => {
     const job = {
       id: jobId,
       token: resolved.token,
-      orderId: String(orderId || resolved.record.orderId || ''),
+      orderId: normalizedOrderId,
       filePath: resolved.filePath,
       copies: Math.max(1, Number(copies) || 1),
       paperSize: String(paperSize || 'auto'),
       status: 'queued',
+      attempts: 0,
       createdAt: now,
       updatedAt: now,
       startedAt: '',
@@ -923,6 +985,7 @@ app.post('/api/print-jobs', requireInternalApiKey, async (req, res) => {
 
     printJobs.set(jobId, job);
     printQueue.push(jobId);
+    await persistPrintJobsToDisk();
     void processPrintQueue();
 
     res.status(202).json(job);
@@ -1009,11 +1072,16 @@ app.get('/share/:token/download', async (req, res) => {
 async function start() {
   await ensureDirectories();
   await loadSessionsFromDisk();
+  await loadPrintJobsFromDisk();
   await cleanupExpiredResults();
 
   setInterval(() => {
     cleanupExpiredResults().catch((error) => console.error('cleanupExpiredResults error:', error.message));
   }, 60 * 60 * 1000).unref();
+
+  if (printQueue.length > 0) {
+    void processPrintQueue();
+  }
 
   app.listen(PORT, () => {
     console.log(`Kothak Photo server running on http://localhost:${PORT}`);

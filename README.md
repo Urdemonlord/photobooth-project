@@ -45,6 +45,9 @@ Lalu buka `http://localhost:3000`.
 - Retensi file hasil via `RESULTS_TTL_HOURS` (default 24 jam), auto-cleanup tiap 1 jam.
 - Session pembayaran disimpan persisten di `data/payment-sessions.json` agar tidak hilang saat restart.
 - Print queue endpoint tersedia via `/api/print-jobs`; konfigurasi printer via `PRINT_*` env.
+- Print job sekarang persisten di `data/print-jobs.json` + resume queue saat restart.
+- Retry cetak otomatis via `PRINT_MAX_RETRIES` (default 2).
+- Lock anti double-print per `orderId` (bisa override dengan `force: true`).
 - Health printer tersedia di `GET /health/printer`.
 
 ## Catatan
