@@ -85,6 +85,10 @@
   const INTERNAL_API_KEY = typeof KothakConfig.getInternalApiKey === 'function'
     ? KothakConfig.getInternalApiKey()
     : '';
+  const OPERATOR_PIN = typeof KothakConfig.getOperatorPin === 'function'
+    ? KothakConfig.getOperatorPin()
+    : '';
+  const OPERATOR_AUTH_SESSION_KEY = 'kothak-operator-auth-ok';
 
 
   async function apiFetchJson(path, options = {}) {
@@ -293,6 +297,26 @@
     `;
   }
 
+  function isOperatorAuthorized() {
+    if (!OPERATOR_PIN) return true;
+    return window.sessionStorage?.getItem(OPERATOR_AUTH_SESSION_KEY) === '1';
+  }
+
+  function requestOperatorAccess() {
+    if (!OPERATOR_PIN) return true;
+    if (isOperatorAuthorized()) return true;
+
+    const input = window.prompt('Masukkan PIN operator untuk buka Pengaturan Paket:');
+    if (!input) return false;
+    if (String(input).trim() !== OPERATOR_PIN) {
+      showToast('PIN operator salah');
+      return false;
+    }
+
+    window.sessionStorage?.setItem(OPERATOR_AUTH_SESSION_KEY, '1');
+    return true;
+  }
+
   function initPackageSettingsPanel() {
     const btnOpen = $('#btn-package-settings');
     const modal = $('#package-settings-modal');
@@ -340,6 +364,7 @@
     };
 
     const openModal = () => {
+      if (!requestOperatorAccess()) return;
       renderEditor();
       modal.classList.remove('hidden');
       modal.setAttribute('aria-hidden', 'false');

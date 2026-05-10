@@ -92,6 +92,15 @@
     window.localStorage?.removeItem(PACKAGE_RULES_STORAGE_KEY);
   }
 
+  function getOperatorPin() {
+    return String(
+      document.querySelector('meta[name="kothak-operator-pin"]')?.content
+      || window.__KOTHAK_OPERATOR_PIN__
+      || window.KOTHAK_OPERATOR_PIN
+      || ''
+    ).trim();
+  }
+
   function getPackageRules() {
     const defaults = clone(DEFAULT_PACKAGE_RULES);
     const override = readPackageRulesOverride();
@@ -114,6 +123,7 @@
     normalizeApiBaseUrl,
     buildApiBaseCandidates,
     getInternalApiKey,
+    getOperatorPin,
     getPackageRules,
     setPackageRulesOverride,
     clearPackageRulesOverride,
