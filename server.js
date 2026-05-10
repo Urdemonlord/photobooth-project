@@ -1224,10 +1224,15 @@ app.post('/api/results', requireInternalApiKey, async (req, res) => {
       customerName,
     });
 
-    const fallbackShareUrl = `${getBaseUrl(req)}/share/${record.token}`;
     const directPublicUrl = getPublicResultDirectUrl(req, record.fileName);
-    const downloadUrl = directPublicUrl || `${fallbackShareUrl}/download`;
-    const shareUrl = directPublicUrl || fallbackShareUrl;
+    if (!directPublicUrl) {
+      return res.status(500).json({
+        error: 'PUBLIC_RESULTS_BASE_URL is required for R2-only mode',
+      });
+    }
+
+    const shareUrl = directPublicUrl;
+    const downloadUrl = directPublicUrl;
     const downloadQrDataUrl = await createQrDataUrl(downloadUrl);
 
     res.json({
@@ -1409,59 +1414,16 @@ app.get('/health/printer', (_req, res) => {
   });
 });
 
-app.get('/share/:token', async (req, res) => {
-  try {
-    const record = await loadResultShare(req.params.token);
-    if (!record) {
-      return res.status(404).send('Hasil foto tidak ditemukan');
-    }
-
-    const shareUrl = `${getBaseUrl(req)}/share/${record.token}`;
-    const downloadUrl = `${shareUrl}/download`;
-    res.type('html').send(renderSharePage({
-      token: record.token,
-      downloadUrl,
-      imageUrl: `${shareUrl}/image`,
-      customerName: record.customerName,
-      orderId: record.orderId,
-      createdAt: record.createdAt,
-      packageId: record.packageId,
-    }));
-  } catch (error) {
-    res.status(500).send(error.message);
-  }
+app.get('/share/:token', async (_req, res) => {
+  return res.status(410).send('Share page disabled: R2-only mode aktif. Gunakan URL file R2 langsung.');
 });
 
-app.get('/share/:token/image', async (req, res) => {
-  try {
-    const record = await loadResultShare(req.params.token);
-    if (!record) {
-      return res.status(404).send('Hasil foto tidak ditemukan');
-    }
-
-    if (req.query.download === '1') {
-      res.download(record.filePath, `${record.token}.${path.extname(record.filePath).replace('.', '')}`);
-      return;
-    }
-
-    res.sendFile(record.filePath);
-  } catch (error) {
-    res.status(500).send(error.message);
-  }
+app.get('/share/:token/image', async (_req, res) => {
+  return res.status(410).send('Image route disabled: R2-only mode aktif. Gunakan URL file R2 langsung.');
 });
 
-app.get('/share/:token/download', async (req, res) => {
-  try {
-    const record = await loadResultShare(req.params.token);
-    if (!record) {
-      return res.status(404).send('Hasil foto tidak ditemukan');
-    }
-
-    const extension = path.extname(record.filePath).replace('.', '') || 'png';
-    res.download(record.filePath, `${record.token}.${extension}`);
-  } catch (error) {
-    res.status(500).send(error.message);
-  }
+app.get('/share/:token/download', async (_req, res) => {
+  return res.status(410).send('Download route disabled: R2-only mode aktif. Gunakan URL file R2 langsung.');
 });
 
 async function start() {
