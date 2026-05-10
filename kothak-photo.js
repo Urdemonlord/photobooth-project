@@ -5,27 +5,32 @@
 (function () {
   'use strict';
 
+  // ── Runtime Config ──
+  const KothakConfig = window.KothakConfig || {};
+
   // ── State ──
-  const PACKAGE_RULES = {
-    reguler: {
-      captureTimeSeconds: 60,
-      allowedFrames: ['birthday'],
-      allowedFilters: ['original', 'bw', 'warm'],
-      printCopies: 1,
-    },
-    premium: {
-      captureTimeSeconds: 90,
-      allowedFrames: ['birthday', 'friends', 'picture-perfect'],
-      allowedFilters: ['original', 'bw', 'vintage', 'warm', 'cool', 'dramatic', 'pastel', 'retro'],
-      printCopies: 1,
-    },
-    group: {
-      captureTimeSeconds: 120,
-      allowedFrames: 'all',
-      allowedFilters: ['original', 'bw', 'vintage', 'warm', 'cool', 'dramatic', 'pastel', 'retro'],
-      printCopies: 2,
-    },
-  };
+  const PACKAGE_RULES = typeof KothakConfig.getPackageRules === 'function'
+    ? KothakConfig.getPackageRules()
+    : {
+      reguler: {
+        captureTimeSeconds: 60,
+        allowedFrames: ['birthday'],
+        allowedFilters: ['original', 'bw', 'warm'],
+        printCopies: 1,
+      },
+      premium: {
+        captureTimeSeconds: 90,
+        allowedFrames: ['birthday', 'friends', 'picture-perfect'],
+        allowedFilters: ['original', 'bw', 'vintage', 'warm', 'cool', 'dramatic', 'pastel', 'retro'],
+        printCopies: 1,
+      },
+      group: {
+        captureTimeSeconds: 120,
+        allowedFrames: 'all',
+        allowedFilters: ['original', 'bw', 'vintage', 'warm', 'cool', 'dramatic', 'pastel', 'retro'],
+        printCopies: 2,
+      },
+    };
 
   const state = {
     currentScreen: 'screen-landing',
@@ -70,7 +75,6 @@
   const $ = (sel, ctx = document) => ctx.querySelector(sel);
   const $$ = (sel, ctx = document) => [...ctx.querySelectorAll(sel)];
 
-  const KothakConfig = window.KothakConfig || {};
   const API_BASE_CANDIDATES = typeof KothakConfig.buildApiBaseCandidates === 'function'
     ? KothakConfig.buildApiBaseCandidates()
     : ['http://localhost:3000', 'http://127.0.0.1:3000'];

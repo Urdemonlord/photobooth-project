@@ -66,4 +66,5 @@ Lalu buka `http://localhost:3000`.
   - Premium: 3 frame pilihan + semua filter.
   - Group: semua frame + extra print (`copies: 2`).
 - Di layar kamera ada batas waktu sesi foto per paket (reguler 60s, premium 90s, group 120s).
+- Rules paket bisa dioverride dari `kothak-photo.config.js` via `window.KOTHAK_PACKAGE_RULES` / meta `kothak-package-rules` (JSON).
 - Unduhan hasil foto dibuat dari canvas asli lalu bisa dibagikan lewat tautan share.
