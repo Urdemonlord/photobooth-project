@@ -349,6 +349,36 @@
             <span class="frame-info">3 foto</span>
           </div>
 
+          <div class="frame-card" data-frame="boothlab-2" data-cat="story" data-photos="8" id="frame-boothlab-2">
+            <div class="frame-preview" style="background-image: url('assets/frames/Free Frame Boothlab 2.png'); background-size: contain; background-repeat: no-repeat; background-position: center; background-color: #1b1b1f; border-radius: 12px;"></div>
+            <p class="frame-label">Retro Reel Grid</p>
+            <span class="frame-info">8 foto</span>
+          </div>
+
+          <div class="frame-card" data-frame="boothlab-3" data-cat="social" data-photos="6" id="frame-boothlab-3">
+            <div class="frame-preview" style="background-image: url('assets/frames/Free Frame Boothlab 3.png'); background-size: contain; background-repeat: no-repeat; background-position: center; background-color: #20162d; border-radius: 12px;"></div>
+            <p class="frame-label">Chrome Love Grid</p>
+            <span class="frame-info">6 foto</span>
+          </div>
+
+          <div class="frame-card" data-frame="boothlab-4" data-cat="celebration" data-photos="6" id="frame-boothlab-4">
+            <div class="frame-preview" style="background-image: url('assets/frames/Free Frame Boothlab 4.png'); background-size: contain; background-repeat: no-repeat; background-position: center; background-color: #f6ddb2; border-radius: 12px;"></div>
+            <p class="frame-label">Fruit Pop Window</p>
+            <span class="frame-info">6 foto</span>
+          </div>
+
+          <div class="frame-card" data-frame="boothlab-5" data-cat="story" data-photos="6" id="frame-boothlab-5">
+            <div class="frame-preview" style="background-image: url('assets/frames/Free Frame Boothlab 5.png'); background-size: contain; background-repeat: no-repeat; background-position: center; background-color: #19161d; border-radius: 12px;"></div>
+            <p class="frame-label">Street Pop Memories</p>
+            <span class="frame-info">6 foto</span>
+          </div>
+
+          <div class="frame-card" data-frame="loveinframe" data-cat="celebration" data-photos="6" id="frame-loveinframe">
+            <div class="frame-preview" style="background-image: url('assets/frames/loveinframe.png'); background-size: contain; background-repeat: no-repeat; background-position: center; background-color: #efe4f2; border-radius: 12px;"></div>
+            <p class="frame-label">Love in Frame</p>
+            <span class="frame-info">6 foto</span>
+          </div>
+
         </div>
       </div>
       <div class="screen-footer">
@@ -388,7 +418,7 @@
         </div>
         <div class="camera-controls">
           <button class="btn-outline btn-retake hidden" id="btn-retake">
-            <span class="material-symbols-rounded">undo</span> Hapus Foto Terakhir
+            <span class="material-symbols-rounded">photo_camera</span> Potret Ulang
           </button>
           <button class="btn-capture" id="btn-capture">
             <span class="material-symbols-rounded">camera</span>
@@ -416,6 +446,11 @@
         <div class="glass-card picker-summary-card">
           <p id="photo-picker-summary">Pilih tepat 3 foto untuk frame.</p>
         </div>
+        <div class="picker-toolbar">
+          <button class="btn-outline picker-tool-btn" id="btn-picker-auto" type="button">Pilih Otomatis</button>
+          <button class="btn-outline picker-tool-btn" id="btn-picker-clear" type="button">Reset Pilihan</button>
+        </div>
+        <div class="picker-selected-strip" id="photo-picker-selected"></div>
         <div class="photo-picker-grid" id="photo-picker-grid"></div>
       </div>
       <div class="screen-footer">
@@ -476,6 +511,12 @@
         <div class="result-content">
           <div class="result-preview glass-card" id="result-preview">
             <canvas id="result-canvas" width="300" height="420"></canvas>
+            <div class="result-meta">
+              <div class="result-meta-row"><span>Frame</span><strong id="result-frame-name">-</strong></div>
+              <div class="result-meta-row"><span>Foto Dipilih</span><strong id="result-photo-count">-</strong></div>
+              <div class="result-meta-row"><span>Paket</span><strong id="result-package-name">-</strong></div>
+              <div class="result-meta-row"><span>Copy Cetak</span><strong id="result-copy-count">-</strong></div>
+            </div>
           </div>
           <div class="result-actions-row">
             <div class="glass-card result-download result-primary">

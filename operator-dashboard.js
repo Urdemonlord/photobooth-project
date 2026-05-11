@@ -12,7 +12,36 @@
     '2x3': { widthMm: 50.8, heightMm: 76.2 },
   };
 
-  const FRAME_OPTIONS = ['birthday', 'friends', 'newspaper', 'filmstrip', 'fish', 'moments-friends', 'live-moment', 'picture-perfect'];
+  const FRAME_OPTIONS = [
+    'birthday',
+    'friends',
+    'newspaper',
+    'filmstrip',
+    'fish',
+    'moments-friends',
+    'live-moment',
+    'picture-perfect',
+    'boothlab-2',
+    'boothlab-3',
+    'boothlab-4',
+    'boothlab-5',
+    'loveinframe',
+  ];
+  const FRAME_LABELS = {
+    birthday: 'Happy Birthday',
+    friends: 'Friends',
+    newspaper: 'Kisah Dua Hati',
+    filmstrip: 'Retro Filmstrip',
+    fish: 'Underwater Fish',
+    'moments-friends': 'Moments with Friends',
+    'live-moment': 'Live in the Moment',
+    'picture-perfect': 'Picture Perfect',
+    'boothlab-2': 'Retro Reel Grid',
+    'boothlab-3': 'Chrome Love Grid',
+    'boothlab-4': 'Fruit Pop Window',
+    'boothlab-5': 'Street Pop Memories',
+    loveinframe: 'Love in Frame',
+  };
   const FILTER_OPTIONS = ['original', 'bw', 'vintage', 'warm', 'cool', 'softglow', 'film', 'natural', 'dramatic', 'pastel', 'retro'];
   const PRICE_STORAGE_KEY = 'kothak-package-prices';
   const DEFAULT_PACKAGE_PRICES = { single: 15000, couple: 25000, group: 35000 };
@@ -39,6 +68,32 @@
 
   function getPackageLabel(pkgKey) {
     return PACKAGE_LABELS[normalizePackageKey(pkgKey)] || String(pkgKey || '-');
+  }
+
+  function getFrameLabel(frameKey) {
+    return FRAME_LABELS[String(frameKey || '').trim()] || String(frameKey || '-');
+  }
+
+  function getRestrictedFrameKeysForPackage(pkgKey) {
+    return normalizePackageKey(pkgKey) === 'single' ? ['boothlab-2', 'boothlab-3', 'boothlab-4', 'boothlab-5', 'loveinframe'] : [];
+  }
+
+  function sanitizeAllowedFramesForPackage(pkgKey, allowedFrames) {
+    const restricted = new Set(getRestrictedFrameKeysForPackage(pkgKey));
+    if (allowedFrames === 'all') {
+      return restricted.size > 0
+        ? FRAME_OPTIONS.filter((frameKey) => !restricted.has(frameKey))
+        : 'all';
+    }
+
+    const nextFrames = Array.isArray(allowedFrames)
+      ? allowedFrames.filter((frameKey) => !restricted.has(frameKey))
+      : [];
+
+    if (nextFrames.length > 0) return nextFrames;
+    return restricted.size > 0
+      ? FRAME_OPTIONS.filter((frameKey) => !restricted.has(frameKey))
+      : nextFrames;
   }
 
   function normalizePackagePrices(source) {
@@ -187,7 +242,23 @@
   function renderChecks(container, values, selected, includeAll = false) {
     const selectedSet = selected === 'all' ? new Set(values) : new Set(Array.isArray(selected) ? selected : []);
     const allBlock = includeAll ? `<label class="check-item"><input type="checkbox" value="__all__" ${selected === 'all' ? 'checked' : ''}/> Semua</label>` : '';
-    container.innerHTML = allBlock + values.map((v) => `<label class="check-item"><input type="checkbox" value="${v}" ${selectedSet.has(v) ? 'checked' : ''}/> ${v}</label>`).join('');
+    container.innerHTML = allBlock + values.map((v) => `<label class="check-item"><input type="checkbox" value="${v}" ${selectedSet.has(v) ? 'checked' : ''}/> ${getFrameLabel(v)}</label>`).join('');
+  }
+
+  function applyFrameRestrictionsToForm(pkgKey) {
+    const restricted = new Set(getRestrictedFrameKeysForPackage(pkgKey));
+    const allowAllInput = document.querySelector('#pkg-frames input[value="__all__"]');
+    if (allowAllInput) {
+      allowAllInput.disabled = restricted.size > 0;
+      if (restricted.size > 0) allowAllInput.checked = false;
+    }
+
+    document.querySelectorAll('#pkg-frames input[type="checkbox"]').forEach((input) => {
+      if (input.value === '__all__') return;
+      const isRestricted = restricted.has(input.value);
+      input.disabled = isRestricted;
+      if (isRestricted) input.checked = false;
+    });
   }
 
   function loadPackageToForm(pkgKey) {
@@ -199,6 +270,7 @@
     $('#pkg-price').value = String(prices[pkgKey] || 0);
     renderChecks($('#pkg-frames'), FRAME_OPTIONS, rule.allowedFrames || [], true);
     renderChecks($('#pkg-filters'), FILTER_OPTIONS, rule.allowedFilters || [], false);
+    applyFrameRestrictionsToForm(pkgKey);
   }
 
   function initPackageEditor() {
@@ -231,7 +303,7 @@
         return;
       }
 
-      const allowedFrames = frameChecked.includes('__all__') ? 'all' : frameChecked.filter((v) => v !== '__all__');
+      const allowedFrames = sanitizeAllowedFramesForPackage(pkgKey, frameChecked.includes('__all__') ? 'all' : frameChecked.filter((v) => v !== '__all__'));
       if (allowedFrames !== 'all' && !allowedFrames.length) {
         alert('Minimal pilih 1 frame atau pilih Semua');
         return;

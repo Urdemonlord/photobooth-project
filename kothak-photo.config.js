@@ -27,22 +27,24 @@
   }
 
   const ALL_FILTERS = ['original', 'bw', 'vintage', 'warm', 'cool', 'softglow', 'film', 'natural', 'dramatic', 'pastel', 'retro'];
+  const BASE_FRAME_KEYS = ['birthday', 'friends', 'newspaper', 'filmstrip', 'fish', 'moments-friends', 'live-moment', 'picture-perfect'];
+  const BONUS_FRAME_KEYS = ['boothlab-2', 'boothlab-3', 'boothlab-4', 'boothlab-5', 'loveinframe'];
   const DEFAULT_PACKAGE_RULES = {
     single: {
       captureTimeSeconds: 60,
-      allowedFrames: 'all',
+      allowedFrames: [...BASE_FRAME_KEYS],
       allowedFilters: [...ALL_FILTERS],
       printCopies: 1,
     },
     couple: {
       captureTimeSeconds: 90,
-      allowedFrames: 'all',
+      allowedFrames: [...BASE_FRAME_KEYS, ...BONUS_FRAME_KEYS],
       allowedFilters: [...ALL_FILTERS],
       printCopies: 2,
     },
     group: {
       captureTimeSeconds: 120,
-      allowedFrames: 'all',
+      allowedFrames: [...BASE_FRAME_KEYS, ...BONUS_FRAME_KEYS],
       allowedFilters: [...ALL_FILTERS],
       printCopies: 3,
     },

@@ -8,6 +8,23 @@
   // ── Runtime Config ──
   const KothakConfig = window.KothakConfig || {};
   const DEFAULT_PACKAGE_PRICES = { single: 15000, couple: 25000, group: 35000 };
+  const BASE_FRAME_KEYS = ['birthday', 'friends', 'newspaper', 'filmstrip', 'fish', 'moments-friends', 'live-moment', 'picture-perfect'];
+  const BONUS_FRAME_KEYS = ['boothlab-2', 'boothlab-3', 'boothlab-4', 'boothlab-5', 'loveinframe'];
+  const FRAME_LABELS = {
+    birthday: 'Happy Birthday',
+    friends: 'Friends',
+    newspaper: 'Kisah Dua Hati',
+    filmstrip: 'Retro Filmstrip',
+    fish: 'Underwater Fish',
+    'moments-friends': 'Moments with Friends',
+    'live-moment': 'Live in the Moment',
+    'picture-perfect': 'Picture Perfect',
+    'boothlab-2': 'Retro Reel Grid',
+    'boothlab-3': 'Chrome Love Grid',
+    'boothlab-4': 'Fruit Pop Window',
+    'boothlab-5': 'Street Pop Memories',
+    loveinframe: 'Love in Frame',
+  };
 
   // ── State ──
   let packageRules = typeof KothakConfig.getPackageRules === 'function'
@@ -15,19 +32,19 @@
     : {
       single: {
         captureTimeSeconds: 60,
-        allowedFrames: 'all',
+        allowedFrames: [...BASE_FRAME_KEYS],
         allowedFilters: ['original', 'bw', 'vintage', 'warm', 'cool', 'softglow', 'film', 'natural', 'dramatic', 'pastel', 'retro'],
         printCopies: 1,
       },
       couple: {
         captureTimeSeconds: 90,
-        allowedFrames: 'all',
+        allowedFrames: [...BASE_FRAME_KEYS, ...BONUS_FRAME_KEYS],
         allowedFilters: ['original', 'bw', 'vintage', 'warm', 'cool', 'softglow', 'film', 'natural', 'dramatic', 'pastel', 'retro'],
         printCopies: 2,
       },
       group: {
         captureTimeSeconds: 120,
-        allowedFrames: 'all',
+        allowedFrames: [...BASE_FRAME_KEYS, ...BONUS_FRAME_KEYS],
         allowedFilters: ['original', 'bw', 'vintage', 'warm', 'cool', 'softglow', 'film', 'natural', 'dramatic', 'pastel', 'retro'],
         printCopies: 3,
       },
@@ -102,6 +119,54 @@
     return prices;
   }
 
+  function getFrameLabel(frameKey) {
+    return FRAME_LABELS[String(frameKey || '').trim()] || String(frameKey || '-');
+  }
+
+  function getRestrictedFrameKeysForPackage(pkgKey) {
+    return normalizePackageKey(pkgKey) === 'single' ? [...BONUS_FRAME_KEYS] : [];
+  }
+
+  function sanitizeAllowedFramesForPackage(pkgKey, allowedFrames) {
+    const restricted = new Set(getRestrictedFrameKeysForPackage(pkgKey));
+    if (allowedFrames === 'all') {
+      return restricted.size > 0 ? [...BASE_FRAME_KEYS] : 'all';
+    }
+
+    const nextFrames = Array.isArray(allowedFrames)
+      ? allowedFrames.filter((frameKey) => !restricted.has(frameKey))
+      : [];
+
+    if (nextFrames.length > 0) return nextFrames;
+    return restricted.size > 0 ? [...BASE_FRAME_KEYS] : nextFrames;
+  }
+
+  function getFrameAccessLabel(frameKey, pkgKey = state.selectedPackage) {
+    const restricted = new Set(getRestrictedFrameKeysForPackage(pkgKey));
+    if (restricted.has(frameKey)) return 'Khusus Couple / Grup';
+    return '';
+  }
+
+  function getFrameTimeBonusSeconds(framePhotoCount = getSelectablePhotoCount()) {
+    const count = Math.max(1, Number(framePhotoCount) || 1);
+    return Math.max(0, count - 3) * 12;
+  }
+
+  function getSessionDurationSeconds(pkgKey = state.selectedPackage, framePhotoCount = getSelectablePhotoCount()) {
+    const normalizedPackageKey = normalizePackageKey(pkgKey);
+    const rule = packageRules[normalizedPackageKey] || packageRules.couple || Object.values(packageRules)[0];
+    const baseSeconds = Math.max(15, Number(rule?.captureTimeSeconds) || 90);
+    return baseSeconds + getFrameTimeBonusSeconds(framePhotoCount);
+  }
+
+  function syncSessionDurationWithFrameSelection() {
+    if (state.currentScreen !== 'screen-frame') return;
+    if (state.photoSessionTimer || state.photoSessionSeconds > 0) return;
+    if (state.capturedPhotos.length > 0) return;
+    state.photoSessionSeconds = getSessionDurationSeconds();
+    renderSessionTimer();
+  }
+
   function getSelectablePhotoCount() {
     return Math.max(1, Number(state.selectedFramePhotos) || 1);
   }
@@ -118,7 +183,7 @@
     state.capturedPhotos = [];
     state.selectedPhotoIndexes = [];
     state.selectedFilter = 'original';
-    state.photoSessionSeconds = Math.max(15, Number(getPackageRule()?.captureTimeSeconds) || 90);
+    state.photoSessionSeconds = getSessionDurationSeconds();
   }
 
   function initPackagePricesFromStorage() {
@@ -228,7 +293,12 @@
   }
 
   function getPackageRule() {
-    return packageRules[state.selectedPackage] || packageRules.couple || Object.values(packageRules)[0];
+    const rule = packageRules[state.selectedPackage] || packageRules.couple || Object.values(packageRules)[0];
+    if (!rule) return null;
+    return {
+      ...rule,
+      allowedFrames: sanitizeAllowedFramesForPackage(state.selectedPackage, rule.allowedFrames),
+    };
   }
 
   function formatSeconds(totalSeconds) {
@@ -312,8 +382,7 @@
   function startPhotoSessionTimer() {
     stopPhotoSessionTimer();
     if (state.photoSessionSeconds <= 0) {
-      const rule = getPackageRule();
-      state.photoSessionSeconds = Math.max(15, Number(rule.captureTimeSeconds) || 90);
+      state.photoSessionSeconds = getSessionDurationSeconds();
     }
     renderSessionTimer();
 
@@ -342,8 +411,14 @@
       const allowed = !allowedFrames || allowedFrames.has(frameKey);
       card.classList.toggle('package-locked', !allowed);
       card.dataset.locked = allowed ? 'false' : 'true';
+      card.dataset.lockLabel = allowed ? '' : getFrameAccessLabel(frameKey, state.selectedPackage);
       card.style.opacity = allowed ? '' : '0.45';
-      card.style.pointerEvents = allowed ? '' : 'none';
+      card.style.pointerEvents = '';
+      card.style.cursor = allowed ? '' : 'not-allowed';
+      const preview = $('.frame-preview', card);
+      if (preview) {
+        preview.dataset.lockLabel = allowed ? '' : getFrameAccessLabel(frameKey, state.selectedPackage);
+      }
     });
 
     if (allowedFrames && !allowedFrames.has(state.selectedFrame)) {
@@ -375,6 +450,8 @@
       chip.style.pointerEvents = allowed ? '' : 'none';
       chip.classList.toggle('active', filterKey === state.selectedFilter);
     });
+
+    syncSessionDurationWithFrameSelection();
   }
 
   function buildPackageEditorCard(pkgKey, rule, frameOptions, filterOptions) {
@@ -382,8 +459,8 @@
     const selectedFilters = new Set(rule.allowedFilters || []);
     const frameChecks = frameOptions.map((frameKey) => `
       <label class="package-check-item">
-        <input type="checkbox" data-field="allowedFrames" value="${frameKey}" ${selectedFrames.has(frameKey) ? 'checked' : ''} />
-        <span>${frameKey}</span>
+        <input type="checkbox" data-field="allowedFrames" data-restricted="${getRestrictedFrameKeysForPackage(pkgKey).includes(frameKey) ? 'true' : 'false'}" value="${frameKey}" ${selectedFrames.has(frameKey) ? 'checked' : ''} ${getRestrictedFrameKeysForPackage(pkgKey).includes(frameKey) ? 'disabled' : ''} />
+        <span>${getFrameLabel(frameKey)}</span>
       </label>
     `).join('');
     const filterChecks = filterOptions.map((filterKey) => `
@@ -410,9 +487,10 @@
         <div class="package-editor-field" style="margin-top:10px;">
           <label>Frame yang diizinkan</label>
           <label class="package-check-item package-check-all">
-            <input type="checkbox" data-field="allowedFramesAll" ${rule.allowedFrames === 'all' ? 'checked' : ''} />
+            <input type="checkbox" data-field="allowedFramesAll" ${rule.allowedFrames === 'all' ? 'checked' : ''} ${normalizePackageKey(pkgKey) === 'single' ? 'disabled' : ''} />
             <span>Semua frame</span>
           </label>
+          ${normalizePackageKey(pkgKey) === 'single' ? '<p class="package-editor-note">Paket Single hanya untuk frame standar.</p>' : ''}
           <div class="package-check-grid">${frameChecks}</div>
         </div>
 
@@ -479,7 +557,9 @@
         const syncDisabled = () => {
           const isAll = !!allFrames?.checked;
           frameChecks.forEach((el) => {
-            el.disabled = isAll;
+            const restricted = el.dataset.restricted === 'true';
+            el.disabled = isAll || restricted;
+            if (restricted) el.checked = false;
           });
         };
         allFrames?.addEventListener('change', syncDisabled);
@@ -616,7 +696,7 @@
         nextRules[pkgKey] = {
           captureTimeSeconds: Math.max(15, captureTime || 90),
           printCopies: Math.max(1, printCopies || 1),
-          allowedFrames: useAllFrames ? 'all' : selectedFrames,
+          allowedFrames: sanitizeAllowedFramesForPackage(pkgKey, useAllFrames ? 'all' : selectedFrames),
           allowedFilters: selectedFilters.length > 0 ? selectedFilters : ['original'],
         };
       });
@@ -774,6 +854,7 @@
         state.selectedPackage = card.dataset.package;
         applyPackageFeatureVisibility();
         updatePriceSummary();
+        syncSessionDurationWithFrameSelection();
       });
     });
   }
@@ -1351,6 +1432,7 @@
         card.classList.add('selected');
         state.selectedFrame = card.dataset.frame;
         state.selectedFramePhotos = parseInt(card.dataset.photos);
+        syncSessionDurationWithFrameSelection();
       });
     });
   }
@@ -1395,6 +1477,7 @@
       state.selectedPhotoIndexes = state.selectedPhotoIndexes.filter((idx) => idx < state.capturedPhotos.length);
       syncSelectedPhotosFromIndexes();
       updateCameraUI();
+      startCountdown();
     };
     $('#btn-open-picker').onclick = () => {
       if (state.capturedPhotos.length < getSelectablePhotoCount()) {
@@ -1422,10 +1505,11 @@
     $('#photo-total').textContent = String(requiredCount);
 
     const pickerHint = $('#camera-picker-hint');
+    const sessionDurationLabel = formatSeconds(getSessionDurationSeconds());
     if (pickerHint) {
       pickerHint.textContent = capturedCount >= requiredCount
-        ? `Sudah cukup. Kamu bisa pilih ${requiredCount} foto terbaik sekarang.`
-        : `Ambil minimal ${requiredCount} foto, lalu pilih yang terbaik untuk frame.`;
+        ? `Sudah cukup. Kamu bisa pilih ${requiredCount} foto terbaik sekarang. Durasi sesi frame ini ${sessionDurationLabel}.`
+        : `Ambil minimal ${requiredCount} foto, lalu pilih yang terbaik untuk frame. Durasi sesi frame ini ${sessionDurationLabel}.`;
     }
 
     const thumbs = $('#photo-thumbnails');
@@ -1521,6 +1605,7 @@
   function renderPhotoPicker() {
     const grid = $('#photo-picker-grid');
     const summary = $('#photo-picker-summary');
+    const selectedStrip = $('#photo-picker-selected');
     const requiredCount = getSelectablePhotoCount();
     const selectedCount = state.selectedPhotoIndexes.length;
 
@@ -1537,11 +1622,32 @@
     }).join('');
 
     if (summary) {
-      summary.textContent = `Pilih tepat ${requiredCount} foto untuk frame. Terpilih ${selectedCount}/${requiredCount}.`;
+      summary.textContent = `Pilih tepat ${requiredCount} foto untuk frame ${getFrameLabel(state.selectedFrame)}. Terpilih ${selectedCount}/${requiredCount}.`;
+    }
+
+    if (selectedStrip) {
+      selectedStrip.innerHTML = state.selectedPhotoIndexes.length
+        ? state.selectedPhotoIndexes.map((photoIndex, order) => `
+          <div class="picker-selected-card">
+            <img src="${state.capturedPhotos[photoIndex]}" alt="Urutan foto ${order + 1}" />
+            <div class="picker-selected-meta">
+              <strong>${order + 1}</strong>
+              <span>Foto #${photoIndex + 1}</span>
+            </div>
+            <div class="picker-selected-actions">
+              <button class="picker-order-btn" type="button" data-picker-move="left" data-picker-order="${order}" ${order === 0 ? 'disabled' : ''}>←</button>
+              <button class="picker-order-btn" type="button" data-picker-move="right" data-picker-order="${order}" ${order === state.selectedPhotoIndexes.length - 1 ? 'disabled' : ''}>→</button>
+              <button class="picker-order-btn danger" type="button" data-picker-remove="${order}">×</button>
+            </div>
+          </div>
+        `).join('')
+        : '<p class="picker-selected-empty">Belum ada foto terpilih.</p>';
     }
 
     $('#btn-picker-continue').disabled = selectedCount !== requiredCount;
     $('#btn-picker-back-camera').disabled = state.photoSessionSeconds <= 0;
+    $('#btn-picker-auto').disabled = state.capturedPhotos.length < requiredCount;
+    $('#btn-picker-clear').disabled = selectedCount === 0;
   }
 
   function initPhotoPicker() {
@@ -1567,6 +1673,49 @@
         renderPhotoPicker();
       });
     }
+
+    const selectedStrip = $('#photo-picker-selected');
+    selectedStrip?.addEventListener('click', (event) => {
+      const moveButton = event.target.closest('[data-picker-move]');
+      if (moveButton) {
+        const order = Number(moveButton.dataset.pickerOrder);
+        const direction = moveButton.dataset.pickerMove;
+        if (!Number.isInteger(order)) return;
+        const swapIndex = direction === 'left' ? order - 1 : order + 1;
+        if (swapIndex < 0 || swapIndex >= state.selectedPhotoIndexes.length) return;
+        const temp = state.selectedPhotoIndexes[order];
+        state.selectedPhotoIndexes[order] = state.selectedPhotoIndexes[swapIndex];
+        state.selectedPhotoIndexes[swapIndex] = temp;
+        syncSelectedPhotosFromIndexes();
+        renderPhotoPicker();
+        return;
+      }
+
+      const removeButton = event.target.closest('[data-picker-remove]');
+      if (!removeButton) return;
+      const order = Number(removeButton.dataset.pickerRemove);
+      if (!Number.isInteger(order)) return;
+      state.selectedPhotoIndexes.splice(order, 1);
+      syncSelectedPhotosFromIndexes();
+      renderPhotoPicker();
+    });
+
+    $('#btn-picker-auto').addEventListener('click', () => {
+      const requiredCount = getSelectablePhotoCount();
+      if (state.capturedPhotos.length < requiredCount) {
+        showToast(`Ambil minimal ${requiredCount} foto dulu`);
+        return;
+      }
+      state.selectedPhotoIndexes = state.capturedPhotos.map((_, index) => index).slice(0, requiredCount);
+      syncSelectedPhotosFromIndexes();
+      renderPhotoPicker();
+    });
+
+    $('#btn-picker-clear').addEventListener('click', () => {
+      state.selectedPhotoIndexes = [];
+      syncSelectedPhotosFromIndexes();
+      renderPhotoPicker();
+    });
 
     $('#btn-picker-back-camera').addEventListener('click', () => {
       if (state.photoSessionSeconds <= 0) {
@@ -1648,9 +1797,9 @@
       'filmstrip': {
         src: 'assets/frames/filmstrip.png',
         holes: [
-          { rx: 0.117, ry: 0.337, rw: 0.770, rh: 0.100 },
-          { rx: 0.117, ry: 0.450, rw: 0.770, rh: 0.100 },
-          { rx: 0.117, ry: 0.563, rw: 0.770, rh: 0.100 }
+          { rx: 0.108, ry: 0.010, rw: 0.766, rh: 0.318 },
+          { rx: 0.108, ry: 0.337, rw: 0.766, rh: 0.318 },
+          { rx: 0.108, ry: 0.676, rw: 0.766, rh: 0.308 }
         ]
       },
       'fish': {
@@ -1682,6 +1831,63 @@
           { rx: 0.063889, ry: 0.035417, rw: 0.871296, rh: 0.289583 },
           { rx: 0.063889, ry: 0.355208, rw: 0.871296, rh: 0.289583 },
           { rx: 0.063889, ry: 0.675000, rw: 0.871296, rh: 0.289583 }
+        ]
+      },
+      'boothlab-2': {
+        src: 'assets/frames/Free Frame Boothlab 2.png',
+        holes: [
+          { rx: 0.056000, ry: 0.031000, rw: 0.387000, rh: 0.226000 },
+          { rx: 0.556000, ry: 0.031000, rw: 0.387000, rh: 0.226000 },
+          { rx: 0.056000, ry: 0.277000, rw: 0.387000, rh: 0.226000 },
+          { rx: 0.556000, ry: 0.277000, rw: 0.387000, rh: 0.226000 },
+          { rx: 0.056000, ry: 0.523000, rw: 0.387000, rh: 0.226000 },
+          { rx: 0.556000, ry: 0.523000, rw: 0.387000, rh: 0.226000 },
+          { rx: 0.056000, ry: 0.769000, rw: 0.387000, rh: 0.226000 },
+          { rx: 0.556000, ry: 0.769000, rw: 0.387000, rh: 0.226000 }
+        ]
+      },
+      'boothlab-3': {
+        src: 'assets/frames/Free Frame Boothlab 3.png',
+        holes: [
+          { rx: 0.073000, ry: 0.049000, rw: 0.357000, rh: 0.256000 },
+          { rx: 0.571000, ry: 0.049000, rw: 0.357000, rh: 0.256000 },
+          { rx: 0.073000, ry: 0.341000, rw: 0.357000, rh: 0.256000 },
+          { rx: 0.571000, ry: 0.341000, rw: 0.357000, rh: 0.256000 },
+          { rx: 0.073000, ry: 0.631000, rw: 0.357000, rh: 0.256000 },
+          { rx: 0.571000, ry: 0.631000, rw: 0.357000, rh: 0.256000 }
+        ]
+      },
+      'boothlab-4': {
+        src: 'assets/frames/Free Frame Boothlab 4.png',
+        holes: [
+          { rx: 0.037000, ry: 0.051000, rw: 0.413000, rh: 0.213000 },
+          { rx: 0.535000, ry: 0.051000, rw: 0.413000, rh: 0.213000 },
+          { rx: 0.037000, ry: 0.293000, rw: 0.413000, rh: 0.213000 },
+          { rx: 0.535000, ry: 0.293000, rw: 0.413000, rh: 0.213000 },
+          { rx: 0.037000, ry: 0.534000, rw: 0.413000, rh: 0.213000 },
+          { rx: 0.535000, ry: 0.534000, rw: 0.413000, rh: 0.213000 }
+        ]
+      },
+      'boothlab-5': {
+        src: 'assets/frames/Free Frame Boothlab 5.png',
+        holes: [
+          { rx: 0.060000, ry: 0.034000, rw: 0.390000, rh: 0.253000 },
+          { rx: 0.553000, ry: 0.034000, rw: 0.390000, rh: 0.253000 },
+          { rx: 0.060000, ry: 0.314000, rw: 0.390000, rh: 0.253000 },
+          { rx: 0.553000, ry: 0.314000, rw: 0.390000, rh: 0.253000 },
+          { rx: 0.060000, ry: 0.594000, rw: 0.390000, rh: 0.253000 },
+          { rx: 0.553000, ry: 0.594000, rw: 0.390000, rh: 0.253000 }
+        ]
+      },
+      'loveinframe': {
+        src: 'assets/frames/loveinframe.png',
+        holes: [
+          { rx: 0.081000, ry: 0.061000, rw: 0.356000, rh: 0.176000 },
+          { rx: 0.563000, ry: 0.061000, rw: 0.356000, rh: 0.176000 },
+          { rx: 0.133000, ry: 0.331000, rw: 0.257000, rh: 0.180000 },
+          { rx: 0.611000, ry: 0.331000, rw: 0.257000, rh: 0.180000 },
+          { rx: 0.094000, ry: 0.558000, rw: 0.330000, rh: 0.177000 },
+          { rx: 0.576000, ry: 0.558000, rw: 0.330000, rh: 0.177000 }
         ]
       }
     };
@@ -2245,6 +2451,15 @@
     if (!state.resultShareQrDataUrl && state.resultShareUrl) {
       await ensureResultDownloadQr();
     }
+
+    const resultFrameName = $('#result-frame-name');
+    const resultPhotoCount = $('#result-photo-count');
+    const resultPackageName = $('#result-package-name');
+    const resultCopyCount = $('#result-copy-count');
+    if (resultFrameName) resultFrameName.textContent = getFrameLabel(state.selectedFrame);
+    if (resultPhotoCount) resultPhotoCount.textContent = `${state.photos.length} foto`;
+    if (resultPackageName) resultPackageName.textContent = getPackageLabel(state.selectedPackage);
+    if (resultCopyCount) resultCopyCount.textContent = `${getPackageRule()?.printCopies || 1} copy`;
 
     syncResultActions();
     const qrEl = $('#download-qr');
