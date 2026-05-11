@@ -841,6 +841,14 @@ async function processPrintQueue() {
 
 function renderSharePage({ token, downloadUrl, imageUrl, customerName, orderId, createdAt, packageId }) {
   const title = 'Laza Photo Download';
+  const packageLabels = {
+    single: 'Single',
+    bestie: 'Duo / Couple',
+    couple: 'Duo / Couple',
+    signature: 'Grup',
+    group: 'Grup',
+  };
+  const packageLabel = packageLabels[String(packageId || '').trim().toLowerCase()] || packageId || '-';
   return `<!doctype html>
 <html lang="id">
 <head>
@@ -981,7 +989,7 @@ function renderSharePage({ token, downloadUrl, imageUrl, customerName, orderId, 
         <p>Gunakan tombol unduh untuk mengambil file PNG asli. Halaman ini juga bisa dibuka dari QR di layar hasil.</p>
         <div class="meta">
           <div class="meta-row"><span>Order</span><strong>${orderId || token}</strong></div>
-          <div class="meta-row"><span>Paket</span><strong>${packageId || '-'}</strong></div>
+          <div class="meta-row"><span>Paket</span><strong>${packageLabel}</strong></div>
           <div class="meta-row"><span>Nama</span><strong>${customerName || '-'}</strong></div>
           <div class="meta-row"><span>Dibuat</span><strong>${createdAt ? new Date(createdAt).toLocaleString('id-ID') : '-'}</strong></div>
         </div>

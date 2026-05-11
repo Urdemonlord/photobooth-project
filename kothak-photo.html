@@ -63,45 +63,37 @@
           <div class="package-card" data-package="single" id="pkg-single">
             <div class="pkg-badge">STARTER</div>
             <span class="material-symbols-rounded pkg-icon">photo_camera</span>
-            <h3>Single Shot</h3>
+            <h3>Single</h3>
             <p class="pkg-price">Rp 15.000</p>
             <ul class="pkg-features">
-              <li><span class="material-symbols-rounded check-icon">check_circle</span> <span>2 Photo Strip</span></li>
-              <li><span class="material-symbols-rounded check-icon">check_circle</span> <span>Digital Copy</span></li>
-              <li><span class="material-symbols-rounded check-icon">check_circle</span> <span>QR Download</span></li>
+              <li><span class="material-symbols-rounded check-icon">check_circle</span> <span>Semua frame</span></li>
+              <li><span class="material-symbols-rounded check-icon">check_circle</span> <span>Semua filter</span></li>
+              <li><span class="material-symbols-rounded check-icon">check_circle</span> <span>Waktu sesi 60 detik</span></li>
+              <li><span class="material-symbols-rounded check-icon">check_circle</span> <span>1 copy print + QR download</span></li>
             </ul>
           </div>
-          <div class="package-card selected" data-package="bestie" id="pkg-bestie">
+          <div class="package-card selected" data-package="couple" id="pkg-couple">
             <div class="pkg-badge popular">MOST POPULAR</div>
             <span class="material-symbols-rounded pkg-icon">groups</span>
-            <h3>Bestie Session</h3>
+            <h3>Duo / Couple</h3>
             <p class="pkg-price">Rp 25.000</p>
             <ul class="pkg-features">
-              <li><span class="material-symbols-rounded check-icon">check_circle</span> <span>3 photo strip</span></li>
-              <li><span class="material-symbols-rounded check-icon">check_circle</span> <span>Multiple Shots</span></li>
-              <li><span class="material-symbols-rounded check-icon">check_circle</span> <span>Digital + QR Download</span></li>
+              <li><span class="material-symbols-rounded check-icon">check_circle</span> <span>Semua frame</span></li>
+              <li><span class="material-symbols-rounded check-icon">check_circle</span> <span>Semua filter</span></li>
+              <li><span class="material-symbols-rounded check-icon">check_circle</span> <span>Waktu sesi 90 detik</span></li>
+              <li><span class="material-symbols-rounded check-icon">check_circle</span> <span>2 copy print + QR download</span></li>
             </ul>
           </div>
-          <div class="package-card" data-package="couple" id="pkg-couple">
-            <div class="pkg-badge">COUPLE</div>
-            <span class="material-symbols-rounded pkg-icon">favorite</span>
-            <h3>Couple Session</h3>
-            <p class="pkg-price">Rp 30.000</p>
-            <ul class="pkg-features">
-              <li><span class="material-symbols-rounded check-icon">check_circle</span> <span>Premium Couple Frame</span></li>
-              <li><span class="material-symbols-rounded check-icon">check_circle</span> <span>3 photo strip</span></li>
-              <li><span class="material-symbols-rounded check-icon">check_circle</span> <span>Special Filter</span></li>
-            </ul>
-          </div>
-          <div class="package-card" data-package="signature" id="pkg-signature">
-            <div class="pkg-badge">SIGNATURE</div>
+          <div class="package-card" data-package="group" id="pkg-group">
+            <div class="pkg-badge">GROUP</div>
             <span class="material-symbols-rounded pkg-icon">diamond</span>
-            <h3>Signature Session</h3>
+            <h3>Grup</h3>
             <p class="pkg-price">Rp 35.000</p>
             <ul class="pkg-features">
-              <li><span class="material-symbols-rounded check-icon">check_circle</span> <span>Exclusive Frame</span></li>
-              <li><span class="material-symbols-rounded check-icon">check_circle</span> <span>HD Digital Copy</span></li>
-              <li><span class="material-symbols-rounded check-icon">check_circle</span> <span>QR Download</span></li>
+              <li><span class="material-symbols-rounded check-icon">check_circle</span> <span>Semua frame</span></li>
+              <li><span class="material-symbols-rounded check-icon">check_circle</span> <span>Semua filter</span></li>
+              <li><span class="material-symbols-rounded check-icon">check_circle</span> <span>Waktu sesi 120 detik</span></li>
+              <li><span class="material-symbols-rounded check-icon">check_circle</span> <span>3 copy print + QR download</span></li>
             </ul>
           </div>
         </div>
@@ -158,8 +150,8 @@
         </div>
         <div class="glass-card price-summary" id="price-summary">
           <div class="price-row">
-            <span>Paket Premium</span>
-            <span class="price-original" id="price-original">Rp 40.000</span>
+            <span>Paket Duo / Couple</span>
+            <span class="price-original" id="price-original">Rp 25.000</span>
           </div>
           <div class="price-row discount hidden" id="discount-row">
             <span>Diskon</span>
@@ -167,7 +159,7 @@
           </div>
           <div class="price-row total">
             <span>Total</span>
-            <span class="price-total" id="price-total">Rp 40.000</span>
+            <span class="price-total" id="price-total">Rp 25.000</span>
           </div>
         </div>
       </div>
@@ -247,7 +239,7 @@
               </svg>
             </div>
           </div>
-          <p class="payment-total">Total Pembayaran: <span class="gold" id="pay-total">Rp 40.000</span></p>
+          <p class="payment-total">Total Pembayaran: <span class="gold" id="pay-total">Rp 25.000</span></p>
           <div class="payment-wallets">
             <span class="wallet-badge">DANA</span>
             <span class="wallet-badge">GoPay</span>
@@ -286,6 +278,7 @@
           <h2>Pilih Frame</h2>
           <p class="header-sub">Laza Photo — Pilih frame favorit kamu</p>
           <div class="step-indicator"><span class="step-current">2</span> / 4</div>
+          <p class="camera-session-timer" data-session-timer></p>
         </div>
       </div>
       <div class="screen-body frame-body">
@@ -372,6 +365,7 @@
         <div class="header-info">
           <h2>Saatnya Foto!</h2>
           <div class="step-indicator"><span class="step-current">3</span> / 4</div>
+          <p class="camera-session-timer" data-session-timer></p>
         </div>
       </div>
       <div class="screen-body camera-body">
@@ -381,39 +375,65 @@
           <span class="dot"></span>
           <span class="dot"></span>
         </div>
-        <p class="camera-instruction" id="camera-instruction">Bersiap-siap! Foto ke-<span id="photo-num">1</span> dari <span id="photo-total">4</span></p>
+        <p class="camera-instruction" id="camera-instruction">Terkumpul <span id="photo-num">0</span> dari minimal <span id="photo-total">3</span> foto</p>
         <div class="viewfinder" id="viewfinder">
           <video id="camera-feed" autoplay playsinline muted></video>
           <div class="viewfinder-overlay">
             <div class="face-guide"></div>
           </div>
           <div class="countdown-overlay hidden" id="countdown-overlay">
-            <span class="countdown-num" id="countdown-num">3</span>
+            <span class="countdown-num" id="countdown-num">7</span>
           </div>
           <div class="flash-overlay hidden" id="flash-overlay"></div>
         </div>
         <div class="camera-controls">
           <button class="btn-outline btn-retake hidden" id="btn-retake">
-            <span class="material-symbols-rounded">replay</span> Ulangi
+            <span class="material-symbols-rounded">undo</span> Hapus Foto Terakhir
           </button>
           <button class="btn-capture" id="btn-capture">
             <span class="material-symbols-rounded">camera</span>
           </button>
-          <button class="btn-primary btn-ok hidden" id="btn-photo-ok">
-            OK <span class="material-symbols-rounded">check</span>
+          <button class="btn-primary btn-ok hidden" id="btn-open-picker">
+            Pilih Foto <span class="material-symbols-rounded">arrow_forward</span>
           </button>
         </div>
+        <p class="camera-picker-hint" id="camera-picker-hint">Ambil minimal 3 foto, lalu pilih yang terbaik untuk frame.</p>
         <div class="photo-thumbnails" id="photo-thumbnails"></div>
       </div>
     </section>
 
-    <!-- ===== SCREEN 7: FILTER SELECTION ===== -->
-    <section id="screen-filter" class="screen" data-step="6">
+    <!-- ===== SCREEN 7: PHOTO PICKER ===== -->
+    <section id="screen-photo-picker" class="screen" data-step="6">
+      <div class="screen-header">
+        <button class="btn-back" data-action="back"><span class="material-symbols-rounded">arrow_back</span></button>
+        <div class="header-info">
+          <h2>Pilih Foto Terbaik</h2>
+          <div class="step-indicator"><span class="step-current">5</span> / 6</div>
+          <p class="camera-session-timer" data-session-timer></p>
+        </div>
+      </div>
+      <div class="screen-body picker-body">
+        <div class="glass-card picker-summary-card">
+          <p id="photo-picker-summary">Pilih tepat 3 foto untuk frame.</p>
+        </div>
+        <div class="photo-picker-grid" id="photo-picker-grid"></div>
+      </div>
+      <div class="screen-footer">
+        <button class="btn-outline" id="btn-picker-back-camera" type="button">Tambah Foto Lagi</button>
+        <button class="btn-primary btn-gold" id="btn-picker-continue" type="button">
+          Lanjut ke Filter <span class="material-symbols-rounded">arrow_forward</span>
+        </button>
+      </div>
+    </section>
+
+    <!-- ===== SCREEN 8: FILTER SELECTION ===== -->
+    <section id="screen-filter" class="screen" data-step="7">
       <div class="screen-header">
         <button class="btn-back" data-action="back"><span class="material-symbols-rounded">arrow_back</span></button>
         <div class="header-info">
           <h2>Pilih Filter</h2>
-          <div class="step-indicator"><span class="step-current">4</span> / 4</div>
+          <div class="step-indicator"><span class="step-current">6</span> / 6</div>
+          <p class="camera-session-timer" data-session-timer></p>
         </div>
       </div>
       <div class="screen-body filter-body">
@@ -439,7 +459,7 @@
       </div>
       <div class="screen-footer">
         <button class="btn-outline" data-action="back">Kembali</button>
-        <button class="btn-primary btn-gold" id="btn-to-camera">
+        <button class="btn-primary btn-gold" id="btn-to-result">
           <span class="material-symbols-rounded">check</span> LANJUT HASIL
         </button>
       </div>

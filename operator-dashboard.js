@@ -15,10 +15,42 @@
   const FRAME_OPTIONS = ['birthday', 'friends', 'newspaper', 'filmstrip', 'fish', 'moments-friends', 'live-moment', 'picture-perfect'];
   const FILTER_OPTIONS = ['original', 'bw', 'vintage', 'warm', 'cool', 'softglow', 'film', 'natural', 'dramatic', 'pastel', 'retro'];
   const PRICE_STORAGE_KEY = 'kothak-package-prices';
+  const DEFAULT_PACKAGE_PRICES = { single: 15000, couple: 25000, group: 35000 };
+  const PACKAGE_LABELS = {
+    single: 'Single',
+    couple: 'Duo / Couple',
+    group: 'Grup',
+  };
 
   const $ = (s, c = document) => c.querySelector(s);
 
   let gateUnlocked = false;
+
+  function normalizePackageKey(pkgKey) {
+    if (typeof window.KothakConfig?.normalizePackageKey === 'function') {
+      return window.KothakConfig.normalizePackageKey(pkgKey);
+    }
+    const key = String(pkgKey || '').trim().toLowerCase();
+    if (key === 'bestie') return 'couple';
+    if (key === 'signature') return 'group';
+    if (key === 'single' || key === 'couple' || key === 'group') return key;
+    return '';
+  }
+
+  function getPackageLabel(pkgKey) {
+    return PACKAGE_LABELS[normalizePackageKey(pkgKey)] || String(pkgKey || '-');
+  }
+
+  function normalizePackagePrices(source) {
+    const prices = { ...DEFAULT_PACKAGE_PRICES };
+    if (!source || typeof source !== 'object') return prices;
+    for (const [rawKey, rawValue] of Object.entries(source)) {
+      const key = normalizePackageKey(rawKey);
+      if (!key) continue;
+      prices[key] = Math.max(0, Number(rawValue) || prices[key] || 0);
+    }
+    return prices;
+  }
 
   function readPin() {
     const fromStorage = window.localStorage?.getItem(OPERATOR_PIN_STORAGE_KEY);
@@ -31,7 +63,16 @@
     try {
       const raw = window.localStorage?.getItem(OPERATOR_QUEUE_STORAGE_KEY);
       const parsed = raw ? JSON.parse(raw) : [];
-      return Array.isArray(parsed) ? parsed : [];
+      if (!Array.isArray(parsed)) return [];
+      return parsed.map((item) => {
+        const packageKey = normalizePackageKey(item?.packageKey || item?.packageId || item?.packageLabel);
+        return {
+          ...item,
+          packageKey: packageKey || item?.packageKey || '',
+          packageLabel: getPackageLabel(packageKey || item?.packageKey || item?.packageLabel || ''),
+          amount: Number(item?.amount || 0),
+        };
+      });
     } catch { return []; }
   }
 
@@ -119,21 +160,28 @@
   }
 
   function getCurrentRules() {
-    if (typeof window.KothakConfig?.getPackageRules === 'function') return window.KothakConfig.getPackageRules();
-    return window.KothakConfig?.DEFAULT_PACKAGE_RULES || {};
+    const raw = typeof window.KothakConfig?.getPackageRules === 'function'
+      ? window.KothakConfig.getPackageRules()
+      : window.KothakConfig?.DEFAULT_PACKAGE_RULES || {};
+    if (typeof window.KothakConfig?.migratePackageRules === 'function') {
+      return window.KothakConfig.migratePackageRules(raw);
+    }
+    return raw;
   }
 
   function readPackagePrices() {
     try {
       const raw = window.localStorage?.getItem(PRICE_STORAGE_KEY);
       const parsed = raw ? JSON.parse(raw) : null;
-      if (parsed && typeof parsed === 'object') return parsed;
+      const normalized = normalizePackagePrices(parsed);
+      window.localStorage?.setItem(PRICE_STORAGE_KEY, JSON.stringify(normalized));
+      return normalized;
     } catch {}
-    return { single: 15000, bestie: 25000, couple: 30000, signature: 35000 };
+    return { ...DEFAULT_PACKAGE_PRICES };
   }
 
   function writePackagePrices(prices) {
-    window.localStorage?.setItem(PRICE_STORAGE_KEY, JSON.stringify(prices));
+    window.localStorage?.setItem(PRICE_STORAGE_KEY, JSON.stringify(normalizePackagePrices(prices)));
   }
 
   function renderChecks(container, values, selected, includeAll = false) {
@@ -146,7 +194,7 @@
     const rules = getCurrentRules();
     const prices = readPackagePrices();
     const rule = rules[pkgKey] || {};
-    $('#pkg-capture').value = String(rule.captureTimeSeconds || 60);
+    $('#pkg-capture').value = String(rule.captureTimeSeconds || 90);
     $('#pkg-print-copies').value = String(rule.printCopies || 1);
     $('#pkg-price').value = String(prices[pkgKey] || 0);
     renderChecks($('#pkg-frames'), FRAME_OPTIONS, rule.allowedFrames || [], true);
@@ -156,8 +204,8 @@
   function initPackageEditor() {
     const select = $('#package-select');
     const rules = getCurrentRules();
-    const pkgKeys = Object.keys(rules);
-    select.innerHTML = pkgKeys.map((k) => `<option value="${k}">${k}</option>`).join('');
+    const pkgKeys = ['single', 'couple', 'group'].filter((key) => rules[key]);
+    select.innerHTML = pkgKeys.map((k) => `<option value="${k}">${getPackageLabel(k)}</option>`).join('');
     if (!select.value && pkgKeys[0]) select.value = pkgKeys[0];
     loadPackageToForm(select.value);
 

@@ -7,34 +7,29 @@
 
   // ── Runtime Config ──
   const KothakConfig = window.KothakConfig || {};
+  const DEFAULT_PACKAGE_PRICES = { single: 15000, couple: 25000, group: 35000 };
 
   // ── State ──
   let packageRules = typeof KothakConfig.getPackageRules === 'function'
     ? KothakConfig.getPackageRules()
     : {
       single: {
-        captureTimeSeconds: 50,
-        allowedFrames: ['birthday', 'friends'],
-        allowedFilters: ['original', 'bw', 'natural'],
-        printCopies: 1,
-      },
-      bestie: {
-        captureTimeSeconds: 80,
-        allowedFrames: ['birthday', 'friends', 'moments-friends', 'picture-perfect'],
-        allowedFilters: ['original', 'bw', 'vintage', 'warm', 'cool', 'natural'],
+        captureTimeSeconds: 60,
+        allowedFrames: 'all',
+        allowedFilters: ['original', 'bw', 'vintage', 'warm', 'cool', 'softglow', 'film', 'natural', 'dramatic', 'pastel', 'retro'],
         printCopies: 1,
       },
       couple: {
         captureTimeSeconds: 90,
-        allowedFrames: ['newspaper', 'live-moment', 'picture-perfect'],
-        allowedFilters: ['original', 'bw', 'vintage', 'warm', 'softglow', 'film', 'natural'],
-        printCopies: 1,
+        allowedFrames: 'all',
+        allowedFilters: ['original', 'bw', 'vintage', 'warm', 'cool', 'softglow', 'film', 'natural', 'dramatic', 'pastel', 'retro'],
+        printCopies: 2,
       },
-      signature: {
+      group: {
         captureTimeSeconds: 120,
         allowedFrames: 'all',
-        allowedFilters: ['original', 'bw', 'vintage', 'warm', 'cool', 'dramatic', 'pastel', 'retro', 'softglow', 'film', 'natural'],
-        printCopies: 2,
+        allowedFilters: ['original', 'bw', 'vintage', 'warm', 'cool', 'softglow', 'film', 'natural', 'dramatic', 'pastel', 'retro'],
+        printCopies: 3,
       },
     };
 
@@ -45,15 +40,16 @@
   const state = {
     currentScreen: 'screen-landing',
     history: [],
-    selectedPackage: 'bestie',
-    packagePrices: { single: 15000, bestie: 25000, couple: 30000, signature: 35000 },
+    selectedPackage: 'couple',
+    packagePrices: { ...DEFAULT_PACKAGE_PRICES },
     discount: 0,
     userName: '',
     userPhone: '',
     selectedFrame: 'birthday',
     selectedFramePhotos: 3,
     photos: [],
-    currentPhotoIndex: 0,
+    capturedPhotos: [],
+    selectedPhotoIndexes: [],
     selectedFilter: 'original',
     orderId: '',
     paymentCompleted: false,
@@ -82,15 +78,55 @@
   let defaultPaymentQrMarkup = '';
   let defaultDownloadQrMarkup = '';
 
+  function normalizePackageKey(pkgKey) {
+    if (typeof KothakConfig.normalizePackageKey === 'function') {
+      return KothakConfig.normalizePackageKey(pkgKey);
+    }
+    const key = String(pkgKey || '').trim().toLowerCase();
+    if (key === 'bestie') return 'couple';
+    if (key === 'signature') return 'group';
+    if (key === 'single' || key === 'couple' || key === 'group') return key;
+    return '';
+  }
+
+  function normalizePackagePrices(source) {
+    const prices = { ...DEFAULT_PACKAGE_PRICES };
+    if (!source || typeof source !== 'object') return prices;
+
+    for (const [rawKey, rawValue] of Object.entries(source)) {
+      const key = normalizePackageKey(rawKey);
+      if (!key) continue;
+      prices[key] = Math.max(0, Number(rawValue) || prices[key] || 0);
+    }
+
+    return prices;
+  }
+
+  function getSelectablePhotoCount() {
+    return Math.max(1, Number(state.selectedFramePhotos) || 1);
+  }
+
+  function syncSelectedPhotosFromIndexes() {
+    state.photos = state.selectedPhotoIndexes
+      .map((idx) => state.capturedPhotos[idx])
+      .filter(Boolean)
+      .slice(0, getSelectablePhotoCount());
+  }
+
+  function resetPhotoSessionState() {
+    state.photos = [];
+    state.capturedPhotos = [];
+    state.selectedPhotoIndexes = [];
+    state.selectedFilter = 'original';
+    state.photoSessionSeconds = Math.max(15, Number(getPackageRule()?.captureTimeSeconds) || 90);
+  }
+
   function initPackagePricesFromStorage() {
     try {
       const raw = window.localStorage?.getItem(PACKAGE_PRICES_STORAGE_KEY);
       const parsed = raw ? JSON.parse(raw) : null;
-      if (!parsed || typeof parsed !== 'object') return;
-      state.packagePrices = {
-        ...state.packagePrices,
-        ...Object.fromEntries(Object.entries(parsed).map(([k, v]) => [k, Number(v) || 0])),
-      };
+      state.packagePrices = normalizePackagePrices(parsed);
+      window.localStorage?.setItem(PACKAGE_PRICES_STORAGE_KEY, JSON.stringify(state.packagePrices));
     } catch {}
   }
 
@@ -192,7 +228,7 @@
   }
 
   function getPackageRule() {
-    return packageRules[state.selectedPackage] || packageRules.bestie || Object.values(packageRules)[0];
+    return packageRules[state.selectedPackage] || packageRules.couple || Object.values(packageRules)[0];
   }
 
   function formatSeconds(totalSeconds) {
@@ -202,24 +238,13 @@
     return `${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}`;
   }
 
-  function ensureCameraTimerEl() {
-    const instruction = $('#camera-instruction');
-    if (!instruction) return null;
-    let timerEl = $('#camera-session-timer');
-    if (timerEl) return timerEl;
+  const SESSION_SCREEN_IDS = new Set(['screen-frame', 'screen-camera', 'screen-photo-picker', 'screen-filter']);
 
-    timerEl = document.createElement('p');
-    timerEl.id = 'camera-session-timer';
-    timerEl.className = 'camera-session-timer';
-    instruction.insertAdjacentElement('afterend', timerEl);
-    return timerEl;
-  }
-
-  function renderCameraSessionTimer() {
-    const timerEl = ensureCameraTimerEl();
-    if (!timerEl) return;
-    timerEl.textContent = `Sisa waktu sesi foto: ${formatSeconds(state.photoSessionSeconds)}`;
-    timerEl.classList.toggle('danger', state.photoSessionSeconds <= 10);
+  function renderSessionTimer() {
+    $$('[data-session-timer]').forEach((timerEl) => {
+      timerEl.innerHTML = `<span class="timer-caption">Sisa Waktu Sesi</span><span class="timer-value">${formatSeconds(state.photoSessionSeconds)}</span>`;
+      timerEl.classList.toggle('danger', state.photoSessionSeconds <= 10);
+    });
   }
 
   function stopPhotoSessionTimer() {
@@ -227,30 +252,78 @@
     state.photoSessionTimer = null;
   }
 
+  async function requestKioskFullscreen() {
+    if (document.fullscreenElement) return true;
+
+    const target = $('#kiosk-app') || document.documentElement;
+    const request = target?.requestFullscreen
+      || target?.webkitRequestFullscreen
+      || target?.msRequestFullscreen;
+
+    if (typeof request !== 'function') return false;
+
+    try {
+      const result = request.call(target, { navigationUI: 'hide' });
+      if (result && typeof result.then === 'function') {
+        await result;
+      }
+      return true;
+    } catch (error) {
+      console.warn('Fullscreen request failed:', error);
+      return false;
+    }
+  }
+
   function finishPhotoSessionDueToTimeout() {
     stopPhotoSessionTimer();
-    if (state.currentScreen !== 'screen-camera') return;
-
-    if (state.photos.length > 0) {
-      showToast('Waktu habis, lanjut ke filter');
+    if (state.currentScreen === 'screen-filter') {
+      showToast('Waktu sesi habis, hasil sedang disiapkan');
+      goToScreen('screen-result');
+      return;
+    }
+    if (state.currentScreen === 'screen-photo-picker') {
+      if (state.selectedPhotoIndexes.length !== getSelectablePhotoCount()) {
+        state.selectedPhotoIndexes = state.capturedPhotos
+          .map((_, index) => index)
+          .slice(0, getSelectablePhotoCount());
+        syncSelectedPhotosFromIndexes();
+      }
+      showToast('Waktu sesi habis, foto terbaik dipilih otomatis');
       goToScreen('screen-filter');
       return;
     }
+    if (state.currentScreen === 'screen-frame') {
+      showToast('Waktu sesi habis, silakan mulai ulang');
+      resetApp();
+      return;
+    }
+    if (state.currentScreen !== 'screen-camera') return;
 
-    showToast('Waktu habis, silakan pilih frame lagi');
+    if (state.capturedPhotos.length >= getSelectablePhotoCount()) {
+      showToast('Waktu habis, lanjut pilih foto terbaik');
+      goToScreen('screen-photo-picker');
+      return;
+    }
+
+    showToast('Waktu habis sebelum foto terkumpul, silakan pilih frame lagi');
     goBack();
   }
 
   function startPhotoSessionTimer() {
     stopPhotoSessionTimer();
-    const rule = getPackageRule();
-    state.photoSessionSeconds = Math.max(15, Number(rule.captureTimeSeconds) || 90);
-    renderCameraSessionTimer();
+    if (state.photoSessionSeconds <= 0) {
+      const rule = getPackageRule();
+      state.photoSessionSeconds = Math.max(15, Number(rule.captureTimeSeconds) || 90);
+    }
+    renderSessionTimer();
 
     state.photoSessionTimer = setInterval(() => {
-      if (state.currentScreen !== 'screen-camera') return;
+      if (!SESSION_SCREEN_IDS.has(state.currentScreen)) return;
       state.photoSessionSeconds -= 1;
-      renderCameraSessionTimer();
+      renderSessionTimer();
+      if (state.currentScreen === 'screen-photo-picker') {
+        $('#btn-picker-back-camera').disabled = state.photoSessionSeconds <= 0;
+      }
       if (state.photoSessionSeconds <= 0) {
         finishPhotoSessionDueToTimeout();
       }
@@ -322,7 +395,7 @@
 
     return `
       <div class="package-editor-card" data-package="${pkgKey}">
-        <h4 style="margin-bottom:8px; text-transform:capitalize;">Paket ${pkgKey}</h4>
+        <h4 style="margin-bottom:8px;">Paket ${getPackageLabel(pkgKey)}</h4>
         <div class="package-editor-grid">
           <div class="package-editor-field">
             <label>Waktu Foto (detik)</label>
@@ -579,6 +652,7 @@
     if (!current || !next || id === state.currentScreen) return;
 
     const leaveId = state.currentScreen;
+    if (SESSION_SCREEN_IDS.has(leaveId) && !SESSION_SCREEN_IDS.has(id)) stopPhotoSessionTimer();
     state.history.push(state.currentScreen);
     onScreenLeave(leaveId);
     current.classList.remove('active');
@@ -595,11 +669,22 @@
   function goBack() {
     if (state.history.length === 0) return;
     const prevId = state.history.pop();
+    if (prevId === 'screen-package' && state.currentScreen !== 'screen-package') {
+      showToast('Paket sudah dikunci untuk sesi ini');
+      state.history.push(prevId);
+      return;
+    }
+    if (state.currentScreen === 'screen-photo-picker' && prevId === 'screen-camera' && state.photoSessionSeconds <= 0) {
+      showToast('Waktu sesi foto sudah habis');
+      state.history.push(prevId);
+      return;
+    }
     const current = $(`#${state.currentScreen}`);
     const prev = $(`#${prevId}`);
     if (!current || !prev) return;
 
     const leaveId = state.currentScreen;
+    if (SESSION_SCREEN_IDS.has(leaveId) && !SESSION_SCREEN_IDS.has(prevId)) stopPhotoSessionTimer();
     onScreenLeave(leaveId);
     current.classList.remove('active');
     prev.classList.add('active');
@@ -611,13 +696,27 @@
   function onScreenEnter(id) {
     switch (id) {
       case 'screen-payment': startPaymentTimer(); break;
-      case 'screen-frame': applyPackageFeatureVisibility(); break;
-      case 'screen-camera': initCamera(); break;
+      case 'screen-frame':
+        applyPackageFeatureVisibility();
+        startPhotoSessionTimer();
+        break;
+      case 'screen-camera':
+        startPhotoSessionTimer();
+        initCamera();
+        break;
+      case 'screen-photo-picker':
+        startPhotoSessionTimer();
+        renderPhotoPicker();
+        break;
       case 'screen-filter':
+        startPhotoSessionTimer();
         applyPackageFeatureVisibility();
         renderFilterPreview();
         break;
-      case 'screen-result': initResult(); break;
+      case 'screen-result':
+        stopPhotoSessionTimer();
+        initResult();
+        break;
     }
   }
 
@@ -633,7 +732,6 @@
         if (sandboxBadge) sandboxBadge.style.display = 'none';
         break;
       case 'screen-camera':
-        stopPhotoSessionTimer();
         stopCamera();
         break;
       case 'screen-result':
@@ -646,7 +744,10 @@
 
   // ── Landing ──
   function initLanding() {
-    $('#btn-start').addEventListener('click', () => goToScreen('screen-package'));
+    $('#btn-start').addEventListener('click', async () => {
+      await requestKioskFullscreen();
+      goToScreen('screen-package');
+    });
 
     const logo = $('.brand-logo');
     if (logo) {
@@ -679,7 +780,7 @@
 
   function updatePriceSummary() {
     const price = state.packagePrices[state.selectedPackage];
-    const name = state.selectedPackage.charAt(0).toUpperCase() + state.selectedPackage.slice(1);
+    const name = getPackageLabel(state.selectedPackage);
     const priceRow = $('#price-summary .price-row:first-child span:first-child');
     if (priceRow) priceRow.textContent = `Paket ${name}`;
 
@@ -702,24 +803,32 @@
   }
 
   function formatRp(num) {
-    return `Rp ${num.toLocaleString('id-ID')}`;
+    return `Rp ${Number(num || 0).toLocaleString('id-ID')}`;
   }
 
   function getPackageLabel(pkgKey) {
     const labels = {
-      single: 'Single Shot',
-      bestie: 'Bestie Session',
-      couple: 'Couple Session',
-      signature: 'Signature Session',
+      single: 'Single',
+      couple: 'Duo / Couple',
+      group: 'Grup',
     };
-    return labels[pkgKey] || pkgKey;
+    return labels[normalizePackageKey(pkgKey)] || pkgKey;
   }
 
   function readOperatorQueue() {
     try {
       const raw = window.localStorage?.getItem(OPERATOR_QUEUE_STORAGE_KEY);
       const parsed = raw ? JSON.parse(raw) : [];
-      return Array.isArray(parsed) ? parsed : [];
+      if (!Array.isArray(parsed)) return [];
+      return parsed.map((item) => {
+        const packageKey = normalizePackageKey(item?.packageKey || item?.packageId || item?.packageLabel);
+        return {
+          ...item,
+          packageKey: packageKey || item?.packageKey || '',
+          packageLabel: getPackageLabel(packageKey || item?.packageKey || item?.packageLabel || ''),
+          amount: Number(item?.amount || 0),
+        };
+      });
     } catch {
       return [];
     }
@@ -1258,10 +1367,7 @@
 
   // ── Camera ──
   async function initCamera() {
-    state.photos = [];
-    state.currentPhotoIndex = 0;
     updateCameraUI();
-    startPhotoSessionTimer();
 
     try {
       const stream = await navigator.mediaDevices.getUserMedia({
@@ -1273,7 +1379,6 @@
       video.srcObject = stream;
     } catch (err) {
       console.warn('Camera not available, using placeholder:', err.message);
-      // Draw placeholder on viewfinder
       const viewfinder = $('#viewfinder');
       viewfinder.style.background = 'linear-gradient(135deg, #142032, #1f2a3d)';
       viewfinder.querySelector('.viewfinder-overlay').innerHTML = `
@@ -1283,77 +1388,71 @@
         </div>`;
     }
 
-    // Capture button
-    const btnCapture = $('#btn-capture');
-    btnCapture.onclick = startCountdown;
-
-    // Retake
-    const btnRetake = $('#btn-retake');
-    btnRetake.onclick = () => {
-      state.photos.pop();
-      btnRetake.classList.add('hidden');
-      $('#btn-photo-ok').classList.add('hidden');
-      btnCapture.classList.remove('hidden');
+    $('#btn-capture').onclick = startCountdown;
+    $('#btn-retake').onclick = () => {
+      if (!state.capturedPhotos.length) return;
+      state.capturedPhotos.pop();
+      state.selectedPhotoIndexes = state.selectedPhotoIndexes.filter((idx) => idx < state.capturedPhotos.length);
+      syncSelectedPhotosFromIndexes();
       updateCameraUI();
     };
-
-    // OK
-    const btnOk = $('#btn-photo-ok');
-    btnOk.onclick = () => {
-      state.currentPhotoIndex++;
-      btnRetake.classList.add('hidden');
-      btnOk.classList.add('hidden');
-      btnCapture.classList.remove('hidden');
-
-      if (state.currentPhotoIndex >= state.selectedFramePhotos) {
-        // All photos taken
-        stopPhotoSessionTimer();
-        goToScreen('screen-filter');
-      } else {
-        updateCameraUI();
+    $('#btn-open-picker').onclick = () => {
+      if (state.capturedPhotos.length < getSelectablePhotoCount()) {
+        showToast(`Ambil minimal ${getSelectablePhotoCount()} foto dulu`);
+        return;
       }
+      goToScreen('screen-photo-picker');
     };
   }
 
   function updateCameraUI() {
-    const idx = state.currentPhotoIndex;
-    const total = state.selectedFramePhotos;
-
-    // Update progress dots
+    const capturedCount = state.capturedPhotos.length;
+    const requiredCount = getSelectablePhotoCount();
     const progress = $('#photo-progress');
     progress.innerHTML = '';
-    for (let i = 0; i < total; i++) {
+    for (let i = 0; i < requiredCount; i++) {
       const dot = document.createElement('span');
       dot.className = 'dot';
-      if (i < idx) dot.classList.add('done');
-      if (i === idx) dot.classList.add('active');
+      if (i < Math.min(capturedCount, requiredCount)) dot.classList.add('done');
+      if (i === Math.min(capturedCount, Math.max(requiredCount - 1, 0))) dot.classList.add('active');
       progress.appendChild(dot);
     }
 
-    // Update text
-    $('#photo-num').textContent = idx + 1;
-    $('#photo-total').textContent = total;
+    $('#photo-num').textContent = String(capturedCount);
+    $('#photo-total').textContent = String(requiredCount);
 
-    // Update thumbnails
+    const pickerHint = $('#camera-picker-hint');
+    if (pickerHint) {
+      pickerHint.textContent = capturedCount >= requiredCount
+        ? `Sudah cukup. Kamu bisa pilih ${requiredCount} foto terbaik sekarang.`
+        : `Ambil minimal ${requiredCount} foto, lalu pilih yang terbaik untuk frame.`;
+    }
+
     const thumbs = $('#photo-thumbnails');
     thumbs.innerHTML = '';
-    state.photos.forEach((photo, i) => {
+    state.capturedPhotos.forEach((photo, i) => {
       const div = document.createElement('div');
-      div.className = 'thumb' + (i === idx ? ' current' : '');
+      div.className = 'thumb';
       const img = document.createElement('img');
       img.src = photo;
+      img.alt = `Foto sesi ${i + 1}`;
       div.appendChild(img);
       thumbs.appendChild(div);
     });
+
+    $('#btn-retake').classList.toggle('hidden', capturedCount === 0);
+    $('#btn-open-picker').classList.toggle('hidden', capturedCount < requiredCount);
   }
 
   function startCountdown() {
     const overlay = $('#countdown-overlay');
     const numEl = $('#countdown-num');
     overlay.classList.remove('hidden');
-    $('#btn-capture').classList.add('hidden');
+    $('#btn-capture').disabled = true;
+    $('#btn-retake').disabled = true;
+    $('#btn-open-picker').disabled = true;
 
-    let count = 3;
+    let count = 7;
     numEl.textContent = count;
 
     const interval = setInterval(() => {
@@ -1361,12 +1460,15 @@
       if (count > 0) {
         numEl.textContent = count;
         numEl.style.animation = 'none';
-        numEl.offsetHeight; // trigger reflow
+        numEl.offsetHeight;
         numEl.style.animation = 'count-pop 1s ease-out';
       } else {
         clearInterval(interval);
         overlay.classList.add('hidden');
         capturePhoto();
+        $('#btn-capture').disabled = false;
+        $('#btn-retake').disabled = false;
+        $('#btn-open-picker').disabled = false;
       }
     }, 1000);
   }
@@ -1396,7 +1498,7 @@
       canvas.height = 480;
       const grad = ctx.createLinearGradient(0, 0, 640, 480);
       const colors = ['#1f2a3d', '#2a3548', '#142032', '#0a1628'];
-      const idx = state.currentPhotoIndex % colors.length;
+      const idx = state.capturedPhotos.length % colors.length;
       grad.addColorStop(0, colors[idx]);
       grad.addColorStop(1, colors[(idx + 1) % colors.length]);
       ctx.fillStyle = grad;
@@ -1408,16 +1510,80 @@
       ctx.fillStyle = '#bbc7df';
       ctx.font = '600 20px "Plus Jakarta Sans"';
       ctx.textAlign = 'center';
-      ctx.fillText(`Foto ${state.currentPhotoIndex + 1}`, 320, 360);
+      ctx.fillText(`Foto ${state.capturedPhotos.length + 1}`, 320, 360);
     }
 
     const dataUrl = canvas.toDataURL('image/jpeg', 0.85);
-    state.photos.push(dataUrl);
-
-    // Show retake / OK buttons
-    $('#btn-retake').classList.remove('hidden');
-    $('#btn-photo-ok').classList.remove('hidden');
+    state.capturedPhotos.push(dataUrl);
     updateCameraUI();
+  }
+
+  function renderPhotoPicker() {
+    const grid = $('#photo-picker-grid');
+    const summary = $('#photo-picker-summary');
+    const requiredCount = getSelectablePhotoCount();
+    const selectedCount = state.selectedPhotoIndexes.length;
+
+    if (!grid) return;
+    grid.innerHTML = state.capturedPhotos.map((photo, index) => {
+      const order = state.selectedPhotoIndexes.indexOf(index);
+      return `
+        <button class="picker-shot${order >= 0 ? ' selected' : ''}" type="button" data-picker-index="${index}">
+          <img src="${photo}" alt="Foto pilihan ${index + 1}" />
+          <span class="picker-shot-index">#${index + 1}</span>
+          <span class="picker-shot-order${order >= 0 ? '' : ' hidden'}">${order + 1}</span>
+        </button>
+      `;
+    }).join('');
+
+    if (summary) {
+      summary.textContent = `Pilih tepat ${requiredCount} foto untuk frame. Terpilih ${selectedCount}/${requiredCount}.`;
+    }
+
+    $('#btn-picker-continue').disabled = selectedCount !== requiredCount;
+    $('#btn-picker-back-camera').disabled = state.photoSessionSeconds <= 0;
+  }
+
+  function initPhotoPicker() {
+    const grid = $('#photo-picker-grid');
+    if (grid) {
+      grid.addEventListener('click', (event) => {
+        const button = event.target.closest('[data-picker-index]');
+        if (!button) return;
+        const index = Number(button.dataset.pickerIndex);
+        if (!Number.isInteger(index)) return;
+
+        const currentPos = state.selectedPhotoIndexes.indexOf(index);
+        if (currentPos >= 0) {
+          state.selectedPhotoIndexes.splice(currentPos, 1);
+        } else if (state.selectedPhotoIndexes.length < getSelectablePhotoCount()) {
+          state.selectedPhotoIndexes.push(index);
+        } else {
+          showToast(`Maksimal pilih ${getSelectablePhotoCount()} foto`);
+          return;
+        }
+
+        syncSelectedPhotosFromIndexes();
+        renderPhotoPicker();
+      });
+    }
+
+    $('#btn-picker-back-camera').addEventListener('click', () => {
+      if (state.photoSessionSeconds <= 0) {
+        showToast('Waktu sesi foto sudah habis');
+        return;
+      }
+      goToScreen('screen-camera');
+    });
+
+    $('#btn-picker-continue').addEventListener('click', () => {
+      if (state.selectedPhotoIndexes.length !== getSelectablePhotoCount()) {
+        showToast(`Pilih tepat ${getSelectablePhotoCount()} foto dulu`);
+        return;
+      }
+      syncSelectedPhotosFromIndexes();
+      goToScreen('screen-filter');
+    });
   }
 
   function stopCamera() {
@@ -1438,7 +1604,11 @@
       });
     });
 
-    $('#btn-to-camera').addEventListener('click', () => {
+    $('#btn-to-result').addEventListener('click', () => {
+      if (!state.photos.length) {
+        showToast('Pilih foto dulu sebelum lanjut hasil');
+        return;
+      }
       goToScreen('screen-result');
     });
   }
@@ -2137,11 +2307,12 @@
 
     // Reset state
     state.photos = [];
-    state.currentPhotoIndex = 0;
+    state.capturedPhotos = [];
+    state.selectedPhotoIndexes = [];
     state.discount = 0;
     state.userName = '';
     state.userPhone = '';
-    state.selectedPackage = 'bestie';
+    state.selectedPackage = 'couple';
     state.selectedFrame = 'birthday';
     state.selectedFramePhotos = 3;
     state.selectedFilter = 'original';
@@ -2206,8 +2377,9 @@
   function initNavigation() {
     // All next buttons
     $$('.btn-next').forEach(btn => {
-      btn.addEventListener('click', () => {
+      btn.addEventListener('click', async () => {
         const target = btn.dataset.goto;
+        await requestKioskFullscreen();
 
         // Validate form if going to payment
         if (target === 'screen-payment') {
@@ -2219,6 +2391,10 @@
 
         if (state.currentScreen === 'screen-package' && target === 'screen-frame') {
           upsertOperatorQueueEntry();
+        }
+
+        if (state.currentScreen === 'screen-frame' && target === 'screen-camera') {
+          resetPhotoSessionState();
         }
 
         if (target) goToScreen(target);
@@ -2240,6 +2416,7 @@
     initPackage();
     initData();
     initFrame();
+    initPhotoPicker();
     initFilter();
     initPackageSettingsPanel();
     applyPackageFeatureVisibility();

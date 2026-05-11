@@ -26,30 +26,25 @@
     ).trim();
   }
 
+  const ALL_FILTERS = ['original', 'bw', 'vintage', 'warm', 'cool', 'softglow', 'film', 'natural', 'dramatic', 'pastel', 'retro'];
   const DEFAULT_PACKAGE_RULES = {
     single: {
-      captureTimeSeconds: 50,
-      allowedFrames: ['birthday', 'friends'],
-      allowedFilters: ['original', 'bw', 'natural'],
-      printCopies: 1,
-    },
-    bestie: {
-      captureTimeSeconds: 80,
-      allowedFrames: ['birthday', 'friends', 'moments-friends', 'picture-perfect'],
-      allowedFilters: ['original', 'bw', 'vintage', 'warm', 'cool', 'natural'],
+      captureTimeSeconds: 60,
+      allowedFrames: 'all',
+      allowedFilters: [...ALL_FILTERS],
       printCopies: 1,
     },
     couple: {
       captureTimeSeconds: 90,
-      allowedFrames: ['newspaper', 'live-moment', 'picture-perfect'],
-      allowedFilters: ['original', 'bw', 'vintage', 'warm', 'softglow', 'film', 'natural'],
-      printCopies: 1,
+      allowedFrames: 'all',
+      allowedFilters: [...ALL_FILTERS],
+      printCopies: 2,
     },
-    signature: {
+    group: {
       captureTimeSeconds: 120,
       allowedFrames: 'all',
-      allowedFilters: ['original', 'bw', 'vintage', 'warm', 'cool', 'dramatic', 'pastel', 'retro', 'softglow', 'film', 'natural'],
-      printCopies: 2,
+      allowedFilters: [...ALL_FILTERS],
+      printCopies: 3,
     },
   };
 
@@ -58,6 +53,47 @@
   }
 
   const PACKAGE_RULES_STORAGE_KEY = 'kothak-package-rules';
+
+  function normalizePackageKey(pkgKey) {
+    const key = String(pkgKey || '').trim().toLowerCase();
+    if (key === 'bestie') return 'couple';
+    if (key === 'signature') return 'group';
+    if (key === 'single' || key === 'couple' || key === 'group') return key;
+    return '';
+  }
+
+  function normalizeRule(rule, fallbackRule) {
+    const base = clone(fallbackRule || {});
+    if (!rule || typeof rule !== 'object') return base;
+    return {
+      ...base,
+      ...rule,
+      allowedFrames: rule.allowedFrames === 'all'
+        ? 'all'
+        : Array.isArray(rule.allowedFrames)
+          ? [...new Set(rule.allowedFrames.map((item) => String(item || '').trim()).filter(Boolean))]
+          : base.allowedFrames,
+      allowedFilters: Array.isArray(rule.allowedFilters) && rule.allowedFilters.length > 0
+        ? [...new Set(rule.allowedFilters.map((item) => String(item || '').trim()).filter(Boolean))]
+        : [...(base.allowedFilters || ['original'])],
+      captureTimeSeconds: Math.max(15, Number(rule.captureTimeSeconds) || Number(base.captureTimeSeconds) || 90),
+      printCopies: Math.max(1, Number(rule.printCopies) || Number(base.printCopies) || 1),
+    };
+  }
+
+  function migratePackageRules(source) {
+    const normalized = {};
+    if (!source || typeof source !== 'object') return normalized;
+
+    for (const [rawKey, rawRule] of Object.entries(source)) {
+      const key = normalizePackageKey(rawKey);
+      if (!key) continue;
+      if (normalized[key]) continue;
+      normalized[key] = normalizeRule(rawRule, DEFAULT_PACKAGE_RULES[key]);
+    }
+
+    return normalized;
+  }
 
   function parseJsonObject(raw) {
     if (!raw) return null;
@@ -72,15 +108,21 @@
 
   function readPackageRulesOverride() {
     const storageRaw = window.localStorage?.getItem(PACKAGE_RULES_STORAGE_KEY);
-    const fromStorage = parseJsonObject(storageRaw);
-    if (fromStorage && typeof fromStorage === 'object') return fromStorage;
+    const parsedStorage = parseJsonObject(storageRaw);
+    const fromStorage = migratePackageRules(parsedStorage);
+    if (Object.keys(fromStorage).length > 0) {
+      if (JSON.stringify(parsedStorage) !== JSON.stringify(fromStorage)) {
+        window.localStorage?.setItem(PACKAGE_RULES_STORAGE_KEY, JSON.stringify(fromStorage));
+      }
+      return fromStorage;
+    }
 
     const raw = document.querySelector('meta[name="kothak-package-rules"]')?.content
       || window.__KOTHAK_PACKAGE_RULES__
       || window.KOTHAK_PACKAGE_RULES
       || null;
 
-    return parseJsonObject(raw);
+    return migratePackageRules(parseJsonObject(raw));
   }
 
   function setPackageRulesOverride(override) {
@@ -88,7 +130,7 @@
       window.localStorage?.removeItem(PACKAGE_RULES_STORAGE_KEY);
       return;
     }
-    window.localStorage?.setItem(PACKAGE_RULES_STORAGE_KEY, JSON.stringify(override));
+    window.localStorage?.setItem(PACKAGE_RULES_STORAGE_KEY, JSON.stringify(migratePackageRules(override)));
   }
 
   function clearPackageRulesOverride() {
@@ -113,10 +155,8 @@
 
     for (const [pkgKey, pkgRule] of Object.entries(override)) {
       if (!pkgRule || typeof pkgRule !== 'object') continue;
-      defaults[pkgKey] = {
-        ...(defaults[pkgKey] || {}),
-        ...pkgRule,
-      };
+      if (!defaults[pkgKey]) continue;
+      defaults[pkgKey] = normalizeRule(pkgRule, defaults[pkgKey]);
     }
 
     return defaults;
@@ -128,8 +168,11 @@
     getInternalApiKey,
     getOperatorPin,
     getPackageRules,
+    normalizePackageKey,
+    migratePackageRules,
     setPackageRulesOverride,
     clearPackageRulesOverride,
+    ALL_FILTERS: [...ALL_FILTERS],
     DEFAULT_PACKAGE_RULES: clone(DEFAULT_PACKAGE_RULES),
   };
 })();
